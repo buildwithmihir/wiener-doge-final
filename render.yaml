@@ -1,0 +1,37 @@
+# Render Blueprint for the API (free web service). Untested: if "New + > Blueprint" complains,
+# create the service by hand with the same values (see DEPLOY.md).
+services:
+  - type: web
+    name: wienerdoge-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.13.5
+      - key: DEV_AUTH_ENABLED
+        value: "false"
+      # Secrets: Render asks for these in the dashboard. They are never stored in this file.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: TICK_SECRET
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: COINGECKO_API_KEY
+        sync: false
+      - key: MINI_APP_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: ADMIN_TELEGRAM_IDS
+        sync: false
