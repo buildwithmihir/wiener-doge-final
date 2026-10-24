@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
+import { Badge as ShadBadge } from './shadcn/badge'
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
@@ -35,17 +36,11 @@ export function EmptyState({ title, text, action, icon }: { title: string; text:
 }
 
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'up' | 'down' | 'demo' }) {
-  const tones = {
-    neutral: 'border-white/15 bg-white/5 text-slate-200',
-    up: 'border-up/40 bg-up-soft text-up',
-    down: 'border-down/40 bg-down-soft text-down',
-    demo: 'border-gold/40 bg-gold/10 text-gold',
-  }
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${tones[tone]}`}>
+    <ShadBadge variant={tone === 'demo' ? 'gold' : tone}>
       {tone === 'demo' && <span className="h-1.5 w-1.5 rounded-full bg-gold" aria-hidden />}
       {children}
-    </span>
+    </ShadBadge>
   )
 }
 
@@ -65,7 +60,7 @@ export function PageTitle({ title, subtitle, icon }: { title: string; subtitle?:
     <div className="mb-4 flex animate-fade-up items-center gap-3">
       {icon && <IconTile icon={icon} />}
       <div>
-        <h1 className="text-xl font-bold text-white">{title}</h1>
+        <h1 className="font-display text-xl font-bold text-white">{title}</h1>
         {subtitle && <p className="text-sm text-slate-400">{subtitle}</p>}
       </div>
     </div>

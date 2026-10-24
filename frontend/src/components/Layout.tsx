@@ -13,12 +13,12 @@ const TABS = [
 export function Layout() {
   return (
     <div className="mx-auto flex min-h-full max-w-md flex-col">
-      <header className="sticky top-0 z-20 flex items-center justify-between gap-2 bg-ink-950/80 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
+      <header className="sticky top-0 z-20 flex items-center justify-between gap-2 border-b border-white/5 bg-background/70 px-4 pb-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur">
         <Link to="/" className="flex items-center gap-2" aria-label="WienerDoge home">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-neon-blue to-neon-violet shadow-glow">
             <BarChart3 className="h-5 w-5 text-white" />
           </span>
-          <span className="bg-gradient-to-r from-neon-blue to-neon-violet bg-clip-text text-lg font-bold text-transparent">
+          <span className="font-display bg-gradient-to-r from-neon-cyan via-neon-blue to-neon-violet bg-clip-text text-lg font-extrabold text-transparent">
             WienerDoge
           </span>
         </Link>
@@ -30,13 +30,13 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pb-28 pt-2">
+      <main className="flex-1 px-4 pb-32 pt-3">
         <Outlet />
       </main>
 
       <nav
         aria-label="Main"
-        className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-md justify-around border-t border-neon-blue/20 bg-ink-900/90 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 backdrop-blur"
+        className="fixed inset-x-3 bottom-3 z-20 mx-auto flex max-w-md justify-around rounded-3xl border border-white/10 bg-card/90 px-2 pb-2 pt-2 shadow-card backdrop-blur-xl"
       >
         {TABS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
@@ -45,7 +45,7 @@ export function Layout() {
             end={end}
             className={({ isActive }) =>
               `flex min-w-14 flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-medium transition ${
-                isActive ? 'bg-neon-blue/15 text-neon-blue shadow-glow' : 'text-slate-400 hover:text-slate-200'
+                isActive ? 'bg-gradient-to-br from-primary to-accent text-white shadow-glow' : 'text-muted-foreground hover:text-white'
               }`
             }
           >
