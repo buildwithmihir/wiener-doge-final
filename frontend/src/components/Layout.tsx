@@ -30,7 +30,7 @@ export function Layout() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 pb-32 pt-3">
+      <main className="flex-1 px-4 pb-32 pt-4">
         <Outlet />
       </main>
 

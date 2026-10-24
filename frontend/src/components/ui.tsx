@@ -57,8 +57,8 @@ export function IconTile({ icon: Icon, className = '' }: { icon: LucideIcon; cla
 
 export function PageTitle({ title, subtitle, icon }: { title: string; subtitle?: string; icon?: LucideIcon }) {
   return (
-    <div className="mb-4 flex animate-fade-up items-center gap-3">
-      {icon && <IconTile icon={icon} />}
+    <div className="mb-5 mt-3 flex animate-fade-up items-center gap-3.5">
+      {icon && <IconTile icon={icon} className="h-11 w-11" />}
       <div>
         <h1 className="font-display text-xl font-bold text-white">{title}</h1>
         {subtitle && <p className="text-sm text-slate-400">{subtitle}</p>}
