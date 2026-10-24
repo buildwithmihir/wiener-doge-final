@@ -96,6 +96,8 @@ def main() -> int:
         resumed = client.post(f"{API}/admin/markets/{mid}/resume", headers=H(mod), json={"reason": "ok now"})
         assert resumed.json()["status"] == "open"
         err(client.post(f"{API}/admin/markets/{mid}/void", headers=H(mod), json={"reason": "x"}), 403, "forbidden")
+        err(client.post(f"{API}/admin/markets/ladder", headers=H(mod),
+                        json={"symbol": "SOL", "durations": [{"duration_seconds": 86400}], "reason": "x"}), 403, "forbidden")
         print("PASS moderator can pause/resume (not void); system-only reason prefix refused")
 
         # ---- demo credits ----------------------------------------------------------------

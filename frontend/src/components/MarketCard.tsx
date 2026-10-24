@@ -1,7 +1,7 @@
-import { ArrowDown, ArrowUp, CalendarClock, Clock3, Crosshair, Timer } from 'lucide-react'
+import { ArrowDown, ArrowUp, CalendarClock, CheckCircle2, Clock3, Crosshair, Timer, TrendingUp } from 'lucide-react'
 import { useState } from 'react'
 import { useChart } from '../lib/queries'
-import { countdown, dateTime, durationLabel, price } from '../lib/format'
+import { countdown, dateTime, durationFull, price } from '../lib/format'
 import { useCountdown } from '../lib/useCountdown'
 import type { ChartRange, Market } from '../lib/types'
 import { AssetIcon } from './AssetIcon'
@@ -16,9 +16,21 @@ const RANGES: { value: ChartRange; label: string }[] = [
   { value: '7d', label: '7D' },
 ]
 
-export function MarketCard({ market, loadedAt }: { market: Market; loadedAt: number }) {
+export type Direction = 'above' | 'below'
+
+export function MarketCard({
+  market,
+  loadedAt,
+  direction,
+  onDirection,
+}: {
+  market: Market
+  loadedAt: number
+  direction: Direction | null
+  onDirection: (d: Direction | null) => void
+}) {
   const [range, setRange] = useState<ChartRange>('1h')
-  const [direction, setDirection] = useState<'above' | 'below' | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
   const chart = useChart(market.symbol, range)
   // `loadedAt` is when the server numbers were fetched; counting down from there keeps the timer honest.
   const secondsLeft = useCountdown(loadedAt + market.betting_closes_in_seconds * 1000)
@@ -38,14 +50,14 @@ export function MarketCard({ market, loadedAt }: { market: Market; loadedAt: num
           : null
 
   return (
-    <section className="glass p-4" aria-label={`${market.symbol} ${durationLabel(market.duration_seconds)} market`}>
+    <section className="glass p-4" aria-label={`${market.symbol} ${durationFull(market.duration_seconds)} market`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <AssetIcon symbol={market.symbol} />
           <div>
             <h2 className="text-2xl font-bold leading-tight text-white">{market.symbol}</h2>
             <p className="flex items-center gap-1.5 text-sm text-slate-300">
-              {durationLabel(market.duration_seconds)} market <Clock3 className="h-3.5 w-3.5" />
+              {durationFull(market.duration_seconds)} <Clock3 className="h-3.5 w-3.5" />
             </p>
           </div>
         </div>
@@ -85,7 +97,7 @@ export function MarketCard({ market, loadedAt }: { market: Market; loadedAt: num
         ))}
       </div>
       <div className="mt-2 rounded-xl border border-white/10 bg-ink-900/60 p-2">
-        {chart.isPending ? <Spinner /> : <PriceChart points={chart.data?.points ?? []} lastPrice={market.last_price} />}
+        {chart.isPending ? <Spinner /> : <PriceChart points={chart.data?.points ?? []} lastPrice={market.last_price} target={market.target_price} />}
       </div>
 
       <div className="glass-flat mt-3 grid grid-cols-2 divide-x divide-white/10 p-3">
@@ -105,39 +117,65 @@ export function MarketCard({ market, loadedAt }: { market: Market; loadedAt: num
         </div>
       </div>
 
-      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">Your call</p>
+      <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        Will {market.symbol} be above or below {price(market.target_price)}?
+      </p>
       {notice && <p className="mb-2 rounded-lg bg-white/5 px-3 py-2 text-xs text-slate-300">{notice}</p>}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          disabled={!bettingOpen}
-          onClick={() => setDirection('above')}
-          className="flex items-center gap-3 rounded-xl border border-up/50 bg-up-soft px-3 py-3 text-left shadow-glow-up transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ArrowUp className="h-9 w-9 text-up" />
-          <span>
-            <span className="block text-base font-bold text-up">ABOVE</span>
-            <span className="block text-[11px] text-slate-300">Wins if ≥ {price(market.target_price)}</span>
-          </span>
-        </button>
-        <button
-          type="button"
-          disabled={!bettingOpen}
-          onClick={() => setDirection('below')}
-          className="flex items-center gap-3 rounded-xl border border-down/50 bg-down-soft px-3 py-3 text-left shadow-glow-down transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ArrowDown className="h-9 w-9 text-down" />
-          <span>
-            <span className="block text-base font-bold text-down">BELOW</span>
-            <span className="block text-[11px] text-slate-300">Wins if &lt; {price(market.target_price)}</span>
-          </span>
-        </button>
+      <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Your call">
+        {(['above', 'below'] as const).map((d) => {
+          const on = direction === d
+          const Icon = d === 'above' ? ArrowUp : ArrowDown
+          return (
+            <button
+              key={d}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              disabled={!bettingOpen}
+              onClick={() => onDirection(on ? null : d)}
+              className={`relative flex flex-col gap-1 rounded-2xl border px-3 py-3 text-left transition duration-200 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 ${
+                on ? 'pick-selected' : 'pick-idle'
+              }`}
+            >
+              {on && <CheckCircle2 key={d} className="absolute right-2 top-2 h-5 w-5 animate-pop text-white" />}
+              <span className="flex items-center gap-2">
+                <Icon className={`h-7 w-7 transition-colors ${on ? 'text-white' : d === 'above' ? 'text-up' : 'text-down'}`} />
+                <span className="text-base font-bold">{d === 'above' ? 'ABOVE' : 'BELOW'}</span>
+              </span>
+              <span className={`num text-sm font-semibold ${on ? 'text-white' : 'text-slate-200'}`}>{price(market.target_price)}</span>
+              <span className={`text-[11px] ${on ? 'text-white/80' : 'text-slate-400'}`}>
+                Wins if {d === 'above' ? '≥' : '<'} target at close
+              </span>
+              <span className={`mt-1 inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${on ? 'bg-white/20' : 'bg-white/5 text-gold'}`}>
+                <TrendingUp className="h-3 w-3" /> {market.payout_multiplier}x
+              </span>
+            </button>
+          )
+        })}
       </div>
+
+      <button
+        type="button"
+        disabled={!bettingOpen || direction === null}
+        onClick={() => setSheetOpen(true)}
+        className="btn-primary mt-3 w-full"
+      >
+        {direction
+          ? `Continue · ${direction === 'above' ? 'ABOVE' : 'BELOW'} ${price(market.target_price)} · ${market.payout_multiplier}x`
+          : 'Pick Above or Below'}
+      </button>
       <p className="mt-3 text-center text-[11px] text-slate-500">
         Simulated payout {market.payout_multiplier}x · demo credits only · settled from the price at close
       </p>
 
-      {direction && <StakeSheet market={market} direction={direction} onClose={() => setDirection(null)} />}
+      {sheetOpen && direction && (
+        <StakeSheet
+          market={market}
+          direction={direction}
+          onClose={() => setSheetOpen(false)}
+          onPlaced={() => onDirection(null)}
+        />
+      )}
     </section>
   )
 }

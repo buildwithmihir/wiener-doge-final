@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { api, ApiError } from '../../lib/api'
-import { ADMIN_DURATIONS, validTargetPrice } from '../../lib/admin'
+import { ADMIN_DURATIONS, multiplierToBps, validTargetPrice } from '../../lib/admin'
 import { dateTime, durationLabel, price } from '../../lib/format'
 import type { AdminMarket } from '../../lib/types'
 import { Badge, ErrorState, Spinner } from '../../components/ui'
@@ -13,6 +13,101 @@ function errText(e: unknown): string | null {
 
 const input =
   'w-full rounded-xl border border-white/15 bg-ink-900 px-3 py-2 text-sm text-white outline-none focus:border-neon-blue'
+
+function CreateLadder({ symbols }: { symbols: string[] }) {
+  const qc = useQueryClient()
+  const [symbol, setSymbol] = useState(symbols[0] ?? 'SOL')
+  const [picked, setPicked] = useState<Record<number, string>>({ 86400: '1.80', 604800: '1.85' })
+  const [reason, setReason] = useState('')
+  const chosen = ADMIN_DURATIONS.filter((d) => d.seconds in picked)
+  const bad = chosen.some((d) => multiplierToBps(picked[d.seconds] ?? '') === null)
+  const create = useMutation({
+    mutationFn: () =>
+      api<{ base_price: string; created: number; skipped: number }>('/admin/markets/ladder', {
+        method: 'POST',
+        body: {
+          symbol,
+          reason: reason.trim(),
+          durations: chosen.map((d) => ({ duration_seconds: d.seconds, payout_bps: multiplierToBps(picked[d.seconds] ?? '') })),
+        },
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['admin-markets'] })
+      void qc.invalidateQueries({ queryKey: ['markets'] })
+    },
+  })
+  const canSend = chosen.length > 0 && !bad && reason.trim().length > 0 && !create.isPending
+  return (
+    <form
+      className="glass-flat space-y-3 p-4"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (canSend) create.mutate()
+      }}
+    >
+      <p className="text-sm font-semibold text-white">Create price ladder</p>
+      <p className="text-xs text-slate-400">
+        Makes 7 target prices (-10% to +10% around the live price) for each timeframe you tick. Odds are per timeframe.
+      </p>
+      <label className="block text-xs text-slate-400">
+        Asset
+        <select className={`${input} mt-1`} value={symbol} onChange={(e) => setSymbol(e.target.value)}>
+          {symbols.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+      </label>
+      {ADMIN_DURATIONS.map((d) => {
+        const on = d.seconds in picked
+        return (
+          <div key={d.seconds} className="flex items-center gap-3">
+            <label className="flex flex-1 items-center gap-2 text-sm text-slate-200">
+              <input
+                type="checkbox"
+                checked={on}
+                onChange={(e) =>
+                  setPicked((p) => {
+                    const next = { ...p }
+                    if (e.target.checked) next[d.seconds] = '1.80'
+                    else delete next[d.seconds]
+                    return next
+                  })
+                }
+              />
+              {d.label}
+            </label>
+            {on && (
+              <input
+                aria-label={`Odds for ${d.label}`}
+                className={`${input} w-24`}
+                inputMode="decimal"
+                value={picked[d.seconds] ?? ''}
+                onChange={(e) => setPicked((p) => ({ ...p, [d.seconds]: e.target.value }))}
+              />
+            )}
+          </div>
+        )
+      })}
+      <label className="block text-xs text-slate-400">
+        Reason (audited)
+        <input className={`${input} mt-1`} value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="e.g. daily SOL ladder" />
+      </label>
+      <button type="submit" className="btn-primary w-full" disabled={!canSend}>
+        {create.isPending ? 'Creating…' : 'Create ladder'}
+      </button>
+      {create.data && (
+        <p className="text-xs text-up">
+          Created {create.data.created} markets around {create.data.base_price} ({create.data.skipped} already existed).
+        </p>
+      )}
+      {errText(create.error) && (
+        <p role="alert" className="text-xs text-down">
+          {errText(create.error)}
+        </p>
+      )}
+    </form>
+  )
+}
 
 function CreateMarket({ symbols }: { symbols: string[] }) {
   const qc = useQueryClient()
@@ -150,10 +245,11 @@ function MarketRow({ m, canVoid }: { m: AdminMarket; canVoid: boolean }) {
 }
 
 export default function MarketsAdmin({ isAdmin }: { isAdmin: boolean }) {
-  const list = useQuery({ queryKey: ['admin-markets'], queryFn: () => api<{ items: AdminMarket[] }>('/admin/markets?limit=50') })
+  const list = useQuery({ queryKey: ['admin-markets'], queryFn: () => api<{ items: AdminMarket[] }>('/admin/markets?limit=100') })
   const symbols = ['SOL', 'WIENER']
   return (
     <div className="space-y-3">
+      {isAdmin && <CreateLadder symbols={symbols} />}
       {isAdmin && <CreateMarket symbols={symbols} />}
       {list.isPending && <Spinner />}
       {list.isError && <ErrorState message="Could not load markets." onRetry={() => void list.refetch()} />}

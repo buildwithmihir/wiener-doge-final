@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { Wallet as WalletIcon } from 'lucide-react'
 import { api } from '../lib/api'
 import { usd } from '../lib/format'
 import type { Wallet as WalletData } from '../lib/types'
@@ -9,7 +10,7 @@ export default function WalletPage() {
 
   return (
     <>
-      <PageTitle title="Wallet" subtitle="Demo credits only. No cash value, not redeemable." />
+      <PageTitle icon={WalletIcon} title="Wallet" subtitle="Demo credits only. No cash value, not redeemable." />
       {wallet.isPending && <Spinner />}
       {wallet.isError && <ErrorState message="Could not load your wallet." onRetry={() => void wallet.refetch()} />}
       {wallet.data && (

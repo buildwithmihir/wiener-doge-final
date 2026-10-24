@@ -10,6 +10,9 @@ export interface Plot {
   min: number
   max: number
   decimals: number
+  /** Y of the target line (clamped inside the plot) and whether the real target is off the chart. */
+  targetY: number | null
+  targetOff: 'above' | 'below' | null
 }
 
 export interface PlotBox {
@@ -28,7 +31,12 @@ export function priceDecimals(min: number, max: number): number {
   return Math.max(2, Math.min(10, Math.ceil(-Math.log10(step)) + 1))
 }
 
-export function buildPlot(points: ChartResponse['points'], box: PlotBox, tickCount = 5): Plot | null {
+export function buildPlot(
+  points: ChartResponse['points'],
+  box: PlotBox,
+  tickCount = 5,
+  target?: number | null,
+): Plot | null {
   const data = points
     .map((p) => ({ t: Date.parse(p.t), v: Number(p.price) }))
     .filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v))
@@ -41,6 +49,13 @@ export function buildPlot(points: ChartResponse['points'], box: PlotBox, tickCou
   if (hi === lo) {
     lo -= Math.abs(lo) * 0.001 || 0.5
     hi += Math.abs(hi) * 0.001 || 0.5
+  }
+  // Pull the axis toward the target only when it is reasonably close, so the line stays readable.
+  const span = hi - lo
+  const hasTarget = target != null && Number.isFinite(target) && target > 0
+  if (hasTarget && Math.abs(target - (target > hi ? hi : lo)) <= span * 3 && (target > hi || target < lo)) {
+    if (target > hi) hi = target
+    else lo = target
   }
   const pad = (hi - lo) * 0.08
   const min = lo - pad
@@ -62,5 +77,16 @@ export function buildPlot(points: ChartResponse['points'], box: PlotBox, tickCou
     const value = max - ((max - min) * i) / (tickCount - 1)
     return { y: y(value), value }
   })
-  return { line, area, last: { x: last[0], y: last[1] }, ticks, min, max, decimals: priceDecimals(min, max) }
+  let targetY: number | null = null
+  let targetOff: 'above' | 'below' | null = null
+  if (hasTarget) {
+    if (target > max) {
+      targetOff = 'above'
+      targetY = box.top + 2
+    } else if (target < min) {
+      targetOff = 'below'
+      targetY = box.top + innerH - 2
+    } else targetY = y(target)
+  }
+  return { line, area, last: { x: last[0], y: last[1] }, ticks, min, max, decimals: priceDecimals(min, max), targetY, targetOff }
 }

@@ -28,6 +28,10 @@ CHART_RANGES = {"1h": 3600, "6h": 21600, "24h": 86400, "7d": 604800}
 MAX_CHART_POINTS = 240
 DEFAULT_BETTING_CUTOFF_SECONDS = 3600          # betting stops 1h before the market closes
 MAX_PAGE_SIZE = 100
+# Strike ladder: offsets from the current price in basis points (100 bps = 1%).
+LADDER_STEPS_BPS = (-1000, -500, -200, 0, 200, 500, 1000)
+# Default per-timeframe odds (demo values, editable per request). 18000 = 1.80x.
+DEFAULT_PAYOUT_BPS = {86400: 18000, 172800: 18000, 604800: 18500, 2592000: 19000}
 STATUSES = ("draft", "open", "paused", "closed", "settling", "settled", "voided")
 
 _SELECT = """
@@ -99,6 +103,21 @@ def validate_pause_reason(reason: str | None) -> str:
     if reason.lower().startswith(AUTO_PAUSE_PREFIX):
         raise AppError("invalid_reason", "That reason prefix is reserved for the system.", 422)
     return reason
+
+
+def round_sig(value: Decimal, digits: int = 5) -> Decimal:
+    """Round to `digits` significant digits (keeps tiny prices like 0.00000123 readable)."""
+    value = Decimal(value)
+    if value <= 0:
+        raise AppError("invalid_target_price", "Price must be greater than zero.", 422)
+    exp = value.adjusted() - (digits - 1)
+    return value.quantize(Decimal(1).scaleb(exp)) if exp < 0 else value.quantize(Decimal(1))
+
+
+def ladder_targets(base: Decimal, steps_bps: tuple[int, ...] = LADDER_STEPS_BPS) -> list[Decimal]:
+    """Distinct, ascending strike prices around `base`."""
+    out = {round_sig(Decimal(base) * (Decimal(10000 + s) / Decimal(10000))) for s in steps_bps}
+    return sorted(t for t in out if t > 0)
 
 
 # ---- reads ------------------------------------------------------------------------
@@ -286,3 +305,54 @@ def _audit_change(db: Session, actor_id, action: str, market_id, before: dict, a
         {"a": actor_id, "act": action, "id": str(market_id), "r": reason,
          "b": json.dumps(_audit_view(before)), "af": json.dumps(_audit_view(after))},
     )
+
+
+# ---- price ladder (many strikes x timeframes in one go) ------------------------------
+def latest_good_price(db: Session, symbol: str) -> Decimal:
+    row = db.execute(
+        text("""select s.price, s.is_stale, s.is_anomalous,
+                       (now() - s.fetched_at <= make_interval(secs => :stale)) as fresh
+                from market_price_snapshots s join assets a on a.id = s.asset_id
+                where a.symbol = :sym order by s.fetched_at desc limit 1"""),
+        {"sym": symbol.upper(), "stale": _stale_seconds(db)},
+    ).first()
+    if row is None or row.is_stale or row.is_anomalous or not row.fresh:
+        raise AppError("price_unavailable", "No fresh price for this asset right now. Try again shortly.", 503)
+    return Decimal(row.price)
+
+
+def _live_market_exists(db: Session, symbol: str, duration_seconds: int, target: Decimal) -> bool:
+    return db.execute(
+        text("""select 1 from markets m join assets a on a.id = m.asset_id
+                where a.symbol = :s and m.duration_seconds = :d and m.target_price = :t
+                  and m.status in ('open','paused') and m.closes_at > now() limit 1"""),
+        {"s": symbol.upper(), "d": duration_seconds, "t": target},
+    ).first() is not None
+
+
+def create_ladder(
+    db: Session, *, actor_id: uuid.UUID, symbol: str,
+    durations: list[tuple[int, int | None]], reason: str,
+) -> dict:
+    """Create one market per (strike, timeframe) around the current price.
+
+    `durations` = [(duration_seconds, payout_bps or None for the default)].
+    Existing live markets with the same terms are skipped, not duplicated.
+    """
+    if not durations:
+        raise AppError("invalid_duration", "Pick at least one timeframe.", 422)
+    base = latest_good_price(db, symbol)
+    targets = ladder_targets(base)
+    created: list[dict] = []
+    skipped = 0
+    for duration, bps in durations:
+        for target in targets:
+            if _live_market_exists(db, symbol, duration, target):
+                skipped += 1
+                continue
+            created.append(create_market(
+                db, actor_id=actor_id, symbol=symbol, duration_seconds=duration,
+                target_price=target, reason=reason,
+                payout_bps=bps if bps is not None else DEFAULT_PAYOUT_BPS.get(duration, 18000),
+            ))
+    return {"base_price": base, "created": created, "skipped": skipped}

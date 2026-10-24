@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.api.serialize import iso, market_out, money, wallet_out
+from app.api.serialize import iso, market_out, money, price, wallet_out
 from app.core.errors import AppError, NotFound
 from app.core.rate_limit import ADMIN_LIMIT, limiter
 from app.database import get_db
@@ -37,6 +37,17 @@ class MarketCreate(Strict):
     payout_bps: int | None = Field(default=None, gt=10000, le=100000)
     min_stake: str | None = Field(default=None, max_length=24)
     max_stake: str | None = Field(default=None, max_length=24)
+
+
+class LadderDuration(Strict):
+    duration_seconds: int
+    payout_bps: int | None = Field(default=None, gt=10000, le=100000)
+
+
+class LadderCreate(Strict):
+    symbol: str = Field(min_length=1, max_length=16)
+    durations: list[LadderDuration] = Field(min_length=1, max_length=4)
+    reason: str = Field(min_length=1, max_length=300)
 
 
 class Reason(Strict):
@@ -76,6 +87,18 @@ def admin_create_market(request: Request, body: MarketCreate, admin: AdminUser, 
         max_stake=parse_demo(body.max_stake) if body.max_stake else None,
     )
     return market_out(created)
+
+
+@router.post("/markets/ladder", status_code=201)
+@limiter.limit(ADMIN_LIMIT)
+def admin_create_ladder(request: Request, body: LadderCreate, admin: AdminUser, db: Db):
+    """Create a strike ladder (several target prices) for each chosen timeframe."""
+    res = market_service.create_ladder(
+        db, actor_id=admin.id, symbol=body.symbol, reason=body.reason,
+        durations=[(d.duration_seconds, d.payout_bps) for d in body.durations],
+    )
+    return {"base_price": price(res["base_price"]), "created": len(res["created"]),
+            "skipped": res["skipped"], "markets": [market_out(m) for m in res["created"]]}
 
 
 @router.post("/markets/{market_id}/pause")

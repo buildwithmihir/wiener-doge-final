@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, CheckCircle2, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { api, ApiError, newIdempotencyKey } from '../lib/api'
-import { price, usd } from '../lib/format'
+import { durationFull, price, usd } from '../lib/format'
 import { parseDemoToUnits, payoutUnits, unitsToDemo } from '../lib/money'
 import { haptic } from '../lib/telegram'
 import type { Market, Prediction, Wallet } from '../lib/types'
@@ -14,10 +14,12 @@ export function StakeSheet({
   market,
   direction,
   onClose,
+  onPlaced,
 }: {
   market: Market
   direction: 'above' | 'below'
   onClose: () => void
+  onPlaced?: () => void
 }) {
   const client = useQueryClient()
   const [stake, setStake] = useState('10')
@@ -36,6 +38,7 @@ export function StakeSheet({
       }),
     onSuccess: () => {
       haptic('success')
+      onPlaced?.()
       void client.invalidateQueries({ queryKey: ['wallet'] })
       void client.invalidateQueries({ queryKey: ['predictions'] })
       void client.invalidateQueries({ queryKey: ['markets'] })
@@ -74,12 +77,12 @@ export function StakeSheet({
 
   // Rendered on document.body: the market card uses backdrop-filter, which would otherwise trap a fixed overlay inside the card.
   return createPortal(
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-40 flex animate-fade-in items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-label={`Place a ${direction} prediction`}
-        className="glass w-full max-w-md rounded-b-none p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+        className="glass w-full max-w-md animate-sheet-up rounded-b-none p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between">
@@ -99,7 +102,7 @@ export function StakeSheet({
 
         {placed ? (
           <div className="py-4 text-center">
-            <CheckCircle2 className="mx-auto h-10 w-10 text-up" />
+            <CheckCircle2 className="mx-auto h-12 w-12 animate-pop text-up" />
             <p className="mt-2 text-lg font-semibold">Prediction placed</p>
             <p className="mt-1 text-sm text-slate-400">
               {usd(placed.stake)} on {placed.direction.toUpperCase()} · simulated win {usd(placed.potential_payout)}
@@ -142,7 +145,14 @@ export function StakeSheet({
               </button>
             </div>
 
-            <div className="mt-4 flex items-center justify-between text-sm">
+            <div className="mt-4 rounded-xl border border-neon-blue/30 bg-neon-blue/10 p-3 text-sm">
+              <div className="flex justify-between"><span className="text-slate-400">Asset</span><span className="font-semibold">{market.symbol}</span></div>
+              <div className="mt-1 flex justify-between"><span className="text-slate-400">Timeframe</span><span className="font-semibold">{durationFull(market.duration_seconds)}</span></div>
+              <div className="mt-1 flex justify-between"><span className="text-slate-400">Target</span><span className="num font-semibold">{price(market.target_price)}</span></div>
+              <div className="mt-1 flex justify-between"><span className="text-slate-400">Your call</span><span className={`font-semibold ${isAbove ? 'text-up' : 'text-down'}`}>{isAbove ? 'ABOVE' : 'BELOW'}</span></div>
+              <div className="mt-1 flex justify-between"><span className="text-slate-400">Odds</span><span className="num font-semibold text-gold">{market.payout_multiplier}x</span></div>
+            </div>
+            <div className="mt-3 flex items-center justify-between text-sm">
               <span className="text-slate-400">Available</span>
               <span className="num">{wallet.data ? usd(wallet.data.available) : '…'}</span>
             </div>
