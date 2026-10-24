@@ -50,27 +50,8 @@ export default function MarketsPage() {
   // Odds shown on each timeframe tab come from that timeframe's own markets.
   const oddsFor = (d: number) => ofSymbol.find((m) => m.duration_seconds === d)?.payout_multiplier
 
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2" role="group" aria-label="Asset">
-        {symbols.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => {
-              setSymbol(s)
-              setMarketId(null)
-              setClosesAt(null)
-            }}
-            className={`flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-sm font-bold transition duration-200 active:scale-95 ${
-              s === activeSymbol ? 'pick-selected' : 'pick-idle'
-            }`}
-          >
-            <AssetIcon symbol={s} size={24} /> {s}
-          </button>
-        ))}
-      </div>
-
+  const picker = (
+    <>
       <Segmented
         label="Timeframe"
         value={activeDuration}
@@ -85,7 +66,6 @@ export default function MarketsPage() {
           sub: oddsFor(d) ? `${oddsFor(d)}x odds` : undefined,
         }))}
       />
-
       {rounds.length > 1 && (
         <Segmented
           label="Round"
@@ -97,18 +77,35 @@ export default function MarketsPage() {
           options={rounds.map((r) => ({ value: r.closesAt, label: `Closes ${dateTime(r.closesAt)}` }))}
         />
       )}
-
       {round.strikes.length > 1 && (
-        <StrikeLadder
-          strikes={round.strikes}
-          selectedId={active.id}
-          lastPrice={active.last_price}
-          onSelect={(id) => setMarketId(id)}
-        />
+        <StrikeLadder strikes={round.strikes} selectedId={active.id} lastPrice={active.last_price} onSelect={(id) => setMarketId(id)} />
       )}
+    </>
+  )
 
-      <div key={active.id} className="animate-fade-up">
-        <MarketCard market={active} loadedAt={markets.dataUpdatedAt} direction={direction} onDirection={setDirection} />
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(symbols.length, 3)}, minmax(0, 1fr))` }} role="group" aria-label="Asset">
+        {symbols.map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => {
+              setSymbol(s)
+              setMarketId(null)
+              setClosesAt(null)
+            }}
+            className={`flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 font-display text-sm font-bold transition-all duration-300 active:scale-95 ${
+              s === activeSymbol ? 'pick-selected' : 'pick-idle'
+            }`}
+          >
+            <AssetIcon symbol={s} size={26} /> {s}
+          </button>
+        ))}
+      </div>
+
+      <div key={`${activeSymbol}-${activeDuration}`} className="animate-fade-up">
+        <MarketCard market={active} loadedAt={markets.dataUpdatedAt} direction={direction} onDirection={setDirection} picker={picker} />
       </div>
     </div>
   )

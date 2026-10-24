@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { usd } from '../lib/format'
 import { progressPct } from '../lib/vip'
 import type { VipResponse, VipTier } from '../lib/types'
+import { Progress } from '../components/shadcn/progress'
 import { Badge, ErrorState, PageTitle, Spinner } from '../components/ui'
 
 const TIER_COLOR: Record<string, string> = {
@@ -72,19 +73,7 @@ export default function VipPage() {
             </p>
             {vip.data.next && vip.data.remaining_to_next ? (
               <>
-                <div
-                  className="mt-3 h-2 overflow-hidden rounded-full bg-white/10"
-                  role="progressbar"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={progressPct(vip.data)}
-                  aria-label={`Progress to ${vip.data.next.name}`}
-                >
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-neon-blue to-neon-violet"
-                    style={{ width: `${progressPct(vip.data)}%` }}
-                  />
-                </div>
+                <Progress className="mt-3" value={progressPct(vip.data)} aria-label={`Progress to ${vip.data.next.name}`} />
                 <p className="mt-2 text-xs text-slate-400">
                   {usd(vip.data.remaining_to_next)} more to reach {vip.data.next.name}
                 </p>

@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, CheckCircle2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckCircle2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { api, ApiError, newIdempotencyKey } from '../lib/api'
 import { durationFull, price, usd } from '../lib/format'
 import { parseDemoToUnits, payoutUnits, unitsToDemo } from '../lib/money'
 import { haptic } from '../lib/telegram'
+import { Button } from './shadcn/button'
+import { Input } from './shadcn/input'
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from './shadcn/sheet'
 import type { Market, Prediction, Wallet } from '../lib/types'
 
 const QUICK = ['5', '10', '25', '50']
@@ -75,29 +77,19 @@ export function StakeSheet({
     place.reset()
   }
 
-  // Rendered on document.body: the market card uses backdrop-filter, which would otherwise trap a fixed overlay inside the card.
-  return createPortal(
-    <div className="fixed inset-0 z-40 flex animate-fade-in items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Place a ${direction} prediction`}
-        className="glass w-full max-w-md animate-sheet-up rounded-b-none p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
-        onClick={(event) => event.stopPropagation()}
-      >
+  return (
+    <Sheet open onOpenChange={(open) => !open && onClose()}>
+      <SheetContent aria-describedby={undefined}>
         <div className="mb-4 flex items-start justify-between">
           <div>
-            <p className={`flex items-center gap-2 text-lg font-bold ${isAbove ? 'text-up' : 'text-down'}`}>
+            <SheetTitle className={`flex items-center gap-2 font-display text-lg font-bold ${isAbove ? 'text-up' : 'text-down'}`}>
               {isAbove ? <ArrowUp className="h-5 w-5" /> : <ArrowDown className="h-5 w-5" />}
-              {isAbove ? 'ABOVE' : 'BELOW'} {price(market.target_price)}
-            </p>
-            <p className="text-xs text-slate-400">
+              {isAbove ? 'Above' : 'Below'} {price(market.target_price)}
+            </SheetTitle>
+            <SheetDescription className="text-xs text-muted-foreground">
               {market.symbol} · wins if the price at close is {isAbove ? '≥' : '<'} {price(market.target_price)}
-            </p>
+            </SheetDescription>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1 text-slate-400 hover:text-white">
-            <X className="h-5 w-5" />
-          </button>
         </div>
 
         {placed ? (
@@ -107,45 +99,37 @@ export function StakeSheet({
             <p className="mt-1 text-sm text-slate-400">
               {usd(placed.stake)} on {placed.direction.toUpperCase()} · simulated win {usd(placed.potential_payout)}
             </p>
-            <button type="button" className="btn-primary mt-5 w-full" onClick={onClose}>
+            <Button type="button" className="mt-5 w-full" onClick={onClose}>
               Done
-            </button>
+            </Button>
           </div>
         ) : (
           <>
             <label htmlFor="stake" className="text-xs font-medium uppercase tracking-wide text-slate-400">
               Stake (DEMO credits)
             </label>
-            <div className="mt-1 flex items-center gap-2 rounded-xl border border-white/15 bg-ink-900/80 px-3">
-              <span className="text-slate-400">$</span>
-              <input
-                id="stake"
-                ref={inputRef}
-                inputMode="decimal"
-                autoComplete="off"
-                value={stake}
-                onChange={(event) => changeStake(event.target.value)}
-                className="num w-full bg-transparent py-3 text-xl font-semibold outline-none"
-              />
-            </div>
+            <Input
+              id="stake"
+              ref={inputRef}
+              inputMode="decimal"
+              autoComplete="off"
+              value={stake}
+              onChange={(event) => changeStake(event.target.value)}
+              className="font-display-num mt-1 h-14 text-2xl font-bold"
+            />
 
             <div className="mt-3 flex gap-2">
               {QUICK.map((amount) => (
-                <button key={amount} type="button" className="btn-ghost flex-1 px-0 py-2" onClick={() => changeStake(amount)}>
+                <Button key={amount} type="button" className="flex-1" variant="secondary" size="sm" onClick={() => changeStake(amount)}>
                   {amount}
-                </button>
+                </Button>
               ))}
-              <button
-                type="button"
-                className="btn-ghost flex-1 px-0 py-2"
-                disabled={available === null}
-                onClick={() => changeStake(unitsToDemo(maxAllowed))}
-              >
+              <Button type="button" className="flex-1" variant="outline" size="sm" disabled={available === null} onClick={() => changeStake(unitsToDemo(maxAllowed))}>
                 Max
-              </button>
+              </Button>
             </div>
 
-            <div className="mt-4 rounded-xl border border-neon-blue/30 bg-neon-blue/10 p-3 text-sm">
+            <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-3 text-sm">
               <div className="flex justify-between"><span className="text-slate-400">Asset</span><span className="font-semibold">{market.symbol}</span></div>
               <div className="mt-1 flex justify-between"><span className="text-slate-400">Timeframe</span><span className="font-semibold">{durationFull(market.duration_seconds)}</span></div>
               <div className="mt-1 flex justify-between"><span className="text-slate-400">Target</span><span className="num font-semibold">{price(market.target_price)}</span></div>
@@ -167,21 +151,15 @@ export function StakeSheet({
               </p>
             )}
 
-            <button
-              type="button"
-              className="btn-primary mt-4 w-full"
-              disabled={problem !== null || place.isPending}
-              onClick={() => place.mutate()}
-            >
-              {place.isPending ? 'Placing…' : `Place ${isAbove ? 'ABOVE' : 'BELOW'} prediction`}
-            </button>
+            <Button type="button" size="lg" className="mt-4 w-full" disabled={problem !== null || place.isPending} onClick={() => place.mutate()}>
+              {place.isPending ? 'Placing…' : `Place ${isAbove ? 'Above' : 'Below'} prediction`}
+            </Button>
             <p className="mt-3 text-center text-[11px] text-slate-500">
               Demo credits only. No cash value, not redeemable. The payout is simulated.
             </p>
           </>
         )}
-      </div>
-    </div>,
-    document.body,
+      </SheetContent>
+    </Sheet>
   )
 }
