@@ -1,21 +1,22 @@
-import { useState } from 'react'
+import { BarChart3 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { MarketCard } from '../components/MarketCard'
+import { useState } from 'react'
+import { MarketCard, type Direction } from '../components/MarketCard'
+import { AssetIcon } from '../components/AssetIcon'
+import { Segmented } from '../components/Segmented'
+import { StrikeLadder } from '../components/StrikeLadder'
 import { EmptyState, ErrorState, Spinner } from '../components/ui'
-import { durationLabel, price } from '../lib/format'
+import { dateTime, durationFull } from '../lib/format'
+import { nearestStrike, roundsFor } from '../lib/ladder'
 import { useMarkets } from '../lib/queries'
-
-function chipClass(active: boolean): string {
-  return `rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
-    active ? 'bg-neon-blue/20 text-neon-blue ring-1 ring-neon-blue/60' : 'bg-white/5 text-slate-300 hover:text-white'
-  }`
-}
 
 export default function MarketsPage() {
   const markets = useMarkets()
   const [symbol, setSymbol] = useState<string | null>(null)
   const [duration, setDuration] = useState<number | null>(null)
+  const [closesAt, setClosesAt] = useState<string | null>(null)
   const [marketId, setMarketId] = useState<string | null>(null)
+  const [direction, setDirection] = useState<Direction | null>(null)
 
   if (markets.isPending) return <Spinner />
   if (markets.isError) return <ErrorState message="Could not load markets." onRetry={() => void markets.refetch()} />
@@ -24,6 +25,7 @@ export default function MarketsPage() {
   if (all.length === 0) {
     return (
       <EmptyState
+        icon={BarChart3}
         title="No open markets yet"
         text="New markets are added by the team. Check back soon."
         action={
@@ -40,39 +42,74 @@ export default function MarketsPage() {
   const ofSymbol = all.filter((m) => m.symbol === activeSymbol)
   const durations = [...new Set(ofSymbol.map((m) => m.duration_seconds))].sort((a, b) => a - b)
   const activeDuration = duration && durations.includes(duration) ? duration : durations[0]!
-  const candidates = ofSymbol
-    .filter((m) => m.duration_seconds === activeDuration)
-    .sort((a, b) => Number(a.target_price) - Number(b.target_price))
-  const active = candidates.find((m) => m.id === marketId) ?? candidates[0]!
+  const rounds = roundsFor(all, activeSymbol, activeDuration)
+  const round = rounds.find((r) => r.closesAt === closesAt) ?? rounds[0]!
+  const active =
+    round.strikes.find((m) => m.id === marketId) ?? nearestStrike(round.strikes, round.strikes[0]!.last_price) ?? round.strikes[0]!
+
+  // Odds shown on each timeframe tab come from that timeframe's own markets.
+  const oddsFor = (d: number) => ofSymbol.find((m) => m.duration_seconds === d)?.payout_multiplier
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Asset">
+    <div className="space-y-4">
+      <div className="flex gap-2" role="group" aria-label="Asset">
         {symbols.map((s) => (
-          <button key={s} type="button" className={chipClass(s === activeSymbol)} onClick={() => setSymbol(s)}>
-            {s}
-          </button>
-        ))}
-        <span className="mx-1 w-px bg-white/10" aria-hidden />
-        {durations.map((d) => (
-          <button key={d} type="button" className={chipClass(d === activeDuration)} onClick={() => setDuration(d)}>
-            {durationLabel(d)}
+          <button
+            key={s}
+            type="button"
+            onClick={() => {
+              setSymbol(s)
+              setMarketId(null)
+              setClosesAt(null)
+            }}
+            className={`flex items-center gap-2 rounded-2xl border px-3 py-1.5 text-sm font-bold transition duration-200 active:scale-95 ${
+              s === activeSymbol ? 'pick-selected' : 'pick-idle'
+            }`}
+          >
+            <AssetIcon symbol={s} size={24} /> {s}
           </button>
         ))}
       </div>
 
-      {candidates.length > 1 && (
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Target price">
-          <span className="text-xs text-slate-400">Target</span>
-          {candidates.map((m) => (
-            <button key={m.id} type="button" className={chipClass(m.id === active.id)} onClick={() => setMarketId(m.id)}>
-              {price(m.target_price)}
-            </button>
-          ))}
-        </div>
+      <Segmented
+        label="Timeframe"
+        value={activeDuration}
+        onChange={(d) => {
+          setDuration(d)
+          setMarketId(null)
+          setClosesAt(null)
+        }}
+        options={durations.map((d) => ({
+          value: d,
+          label: durationFull(d),
+          sub: oddsFor(d) ? `${oddsFor(d)}x odds` : undefined,
+        }))}
+      />
+
+      {rounds.length > 1 && (
+        <Segmented
+          label="Round"
+          value={round.closesAt}
+          onChange={(c) => {
+            setClosesAt(c)
+            setMarketId(null)
+          }}
+          options={rounds.map((r) => ({ value: r.closesAt, label: `Closes ${dateTime(r.closesAt)}` }))}
+        />
       )}
 
-      <MarketCard key={active.id} market={active} loadedAt={markets.dataUpdatedAt} />
+      {round.strikes.length > 1 && (
+        <StrikeLadder
+          strikes={round.strikes}
+          selectedId={active.id}
+          lastPrice={active.last_price}
+          onSelect={(id) => setMarketId(id)}
+        />
+      )}
+
+      <div key={active.id} className="animate-fade-up">
+        <MarketCard market={active} loadedAt={markets.dataUpdatedAt} direction={direction} onDirection={setDirection} />
+      </div>
     </div>
   )
 }

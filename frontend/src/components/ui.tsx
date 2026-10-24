@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { Loader2 } from 'lucide-react'
 
@@ -22,9 +23,10 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
   )
 }
 
-export function EmptyState({ title, text, action }: { title: string; text: string; action?: ReactNode }) {
+export function EmptyState({ title, text, action, icon }: { title: string; text: string; action?: ReactNode; icon?: LucideIcon }) {
   return (
-    <div className="glass p-6 text-center">
+    <div className="glass animate-fade-up p-6 text-center">
+      {icon && <IconTile icon={icon} className="mx-auto mb-3 h-12 w-12" />}
       <p className="text-base font-semibold text-white">{title}</p>
       <p className="mx-auto mt-1 max-w-xs text-sm text-slate-400">{text}</p>
       {action && <div className="mt-4">{action}</div>}
@@ -47,11 +49,25 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   )
 }
 
-export function PageTitle({ title, subtitle }: { title: string; subtitle?: string }) {
+export function IconTile({ icon: Icon, className = '' }: { icon: LucideIcon; className?: string }) {
   return (
-    <div className="mb-4">
-      <h1 className="text-xl font-bold text-white">{title}</h1>
-      {subtitle && <p className="text-sm text-slate-400">{subtitle}</p>}
+    <span
+      aria-hidden
+      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-neon-blue/30 bg-gradient-to-br from-neon-blue/25 to-neon-violet/20 text-neon-cyan shadow-glow ${className}`}
+    >
+      <Icon className="h-5 w-5" />
+    </span>
+  )
+}
+
+export function PageTitle({ title, subtitle, icon }: { title: string; subtitle?: string; icon?: LucideIcon }) {
+  return (
+    <div className="mb-4 flex animate-fade-up items-center gap-3">
+      {icon && <IconTile icon={icon} />}
+      <div>
+        <h1 className="text-xl font-bold text-white">{title}</h1>
+        {subtitle && <p className="text-sm text-slate-400">{subtitle}</p>}
+      </div>
     </div>
   )
 }

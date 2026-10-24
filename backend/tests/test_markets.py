@@ -11,9 +11,17 @@ os.environ["JWT_SECRET"] = "t" * 48
 os.environ["APP_ENV"] = "development"
 
 from app.core.errors import AppError
-from app.services.markets import compute_schedule, parse_target_price, validate_pause_reason
+from app.services.markets import compute_schedule, ladder_targets, parse_target_price, round_sig, validate_pause_reason
 
 T0 = datetime(2026, 10, 18, 12, 0, tzinfo=timezone.utc)
+
+
+def test_ladder():
+    assert round_sig(Decimal("123.456789")) == Decimal("123.46")
+    assert round_sig(Decimal("0.0000012345678")) == Decimal("0.0000012346")
+    t = ladder_targets(Decimal("100"))
+    assert t == sorted(t) and len(t) == 7 and Decimal("100") in t and t[0] == Decimal("90")
+    assert len(ladder_targets(Decimal("0.0000012345"))) == 7
 
 
 def expect_error(code, func):

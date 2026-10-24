@@ -25,3 +25,11 @@ export function checkCreditAmount(input: string): AmountCheck {
   if (units === 0n) return { ok: false, error: 'Amount cannot be zero.' }
   return { ok: true, text: `${negative ? '-' : ''}${body}` }
 }
+
+/** "1.85" -> 18500 (basis points). Must be above 1.00x and at most 10.00x; null when invalid. */
+export function multiplierToBps(text: string): number | null {
+  const t = text.trim()
+  if (!/^\d{1,2}(\.\d{1,4})?$/.test(t)) return null
+  const bps = Math.round(Number(t) * 10000)
+  return bps > 10000 && bps <= 100000 ? bps : null
+}

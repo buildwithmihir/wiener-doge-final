@@ -40,3 +40,19 @@ describe('buildPlot', () => {
     expect(priceDecimals(5, 5)).toBe(2)
   })
 })
+
+describe('buildPlot target line', () => {
+  it('has no target line by default', () => {
+    expect(buildPlot(pts(['100', '101']), BOX)!.targetY).toBeNull()
+  })
+  it('places a nearby target inside the plot and a far one clamped to the edge', () => {
+    const near = buildPlot(pts(['100', '101', '102']), BOX, 5, 102.5)!
+    expect(near.targetOff).toBeNull()
+    expect(near.targetY!).toBeGreaterThanOrEqual(BOX.top)
+    expect(near.targetY!).toBeLessThanOrEqual(BOX.height - BOX.bottom)
+    const far = buildPlot(pts(['100', '101', '102']), BOX, 5, 500)!
+    expect(far.targetOff).toBe('above')
+    const low = buildPlot(pts(['100', '101', '102']), BOX, 5, 1)!
+    expect(low.targetOff).toBe('below')
+  })
+})

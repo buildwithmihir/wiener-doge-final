@@ -27,6 +27,11 @@ export function durationLabel(seconds: number): string {
   return labels[seconds] ?? `${Math.round(seconds / 3600)}h`
 }
 
+export function durationFull(seconds: number): string {
+  const labels: Record<number, string> = { 86400: 'Next 24 Hours', 172800: 'Next 48 Hours', 604800: 'Next 7 Days', 2592000: 'Next 30 Days' }
+  return labels[seconds] ?? `Next ${Math.round(seconds / 3600)} Hours`
+}
+
 /** 85800 -> "23h 50m", 3000 -> "50m", 45 -> "45s", 0 -> "0s". */
 export function countdown(totalSeconds: number): string {
   const seconds = Math.max(0, Math.floor(totalSeconds))

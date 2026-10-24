@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Check, Lock } from 'lucide-react'
+import { Check, Crown, Gem, Lock, Star, Medal, ShieldCheck, type LucideIcon } from 'lucide-react'
 import { api } from '../lib/api'
 import { usd } from '../lib/format'
 import { progressPct } from '../lib/vip'
@@ -13,11 +13,21 @@ const TIER_COLOR: Record<string, string> = {
   Platinum: 'text-platinum',
 }
 
+const TIER_ICON: Record<string, LucideIcon> = { Bronze: Medal, Silver: ShieldCheck, Gold: Crown, Platinum: Gem }
+
 function TierCard({ t, isNext }: { t: VipTier; isNext: boolean }) {
   return (
-    <li className={`glass-flat p-4 ${isNext ? 'ring-1 ring-neon-blue/50' : ''}`}>
+    <li className={`glass-flat animate-fade-up p-4 ${isNext ? 'ring-1 ring-neon-blue/50' : ''} ${t.unlocked ? '' : 'opacity-90'}`}>
       <div className="flex items-center justify-between">
-        <p className={`text-lg font-bold ${TIER_COLOR[t.name] ?? 'text-white'}`}>{t.name}</p>
+        <p className={`flex items-center gap-3 text-lg font-bold ${TIER_COLOR[t.name] ?? 'text-white'}`}>
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-ink-900/70 shadow-glow">
+            {(() => {
+              const Icon = TIER_ICON[t.name] ?? Medal
+              return <Icon className="h-5 w-5" />
+            })()}
+          </span>
+          {t.name}
+        </p>
         {t.unlocked ? (
           <Badge tone="up">
             <Check className="mr-1 inline h-3 w-3" aria-hidden />
@@ -49,7 +59,7 @@ export default function VipPage() {
 
   return (
     <>
-      <PageTitle title="VIP" subtitle="Stake demo credits to unlock tiers. Rewards are demo credits too." />
+      <PageTitle icon={Star} title="VIP" subtitle="Stake demo credits to unlock tiers. Rewards are demo credits too." />
       {vip.isPending && <Spinner />}
       {vip.isError && <ErrorState message="Could not load VIP tiers." onRetry={() => void vip.refetch()} />}
       {vip.data && (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkCreditAmount, validTargetPrice } from './admin'
+import { checkCreditAmount, multiplierToBps, validTargetPrice } from './admin'
 
 describe('validTargetPrice', () => {
   it('accepts plain positive decimals', () => {
@@ -18,5 +18,16 @@ describe('checkCreditAmount', () => {
   })
   it('rejects zero, empty and invalid', () => {
     for (const bad of ['0', '-0', '', 'x', '1.1234567', '--5']) expect(checkCreditAmount(bad).ok).toBe(false)
+  })
+})
+
+describe('multiplierToBps', () => {
+  it('converts valid multipliers and rejects the rest', () => {
+    expect(multiplierToBps('1.8')).toBe(18000)
+    expect(multiplierToBps('1.85')).toBe(18500)
+    expect(multiplierToBps('1')).toBeNull()
+    expect(multiplierToBps('0.5')).toBeNull()
+    expect(multiplierToBps('11')).toBeNull()
+    expect(multiplierToBps('abc')).toBeNull()
   })
 })

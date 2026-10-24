@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp } from 'lucide-react'
+import { ArrowDown, ArrowUp, History as HistoryIcon } from 'lucide-react'
 import { api } from '../lib/api'
 import { dateTime, durationLabel, price, usd } from '../lib/format'
 import { FILTERS, summarize, type HistoryFilter } from '../lib/history'
@@ -77,7 +77,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <PageTitle title="History" subtitle="Your predictions. Demo credits only." />
+      <PageTitle icon={HistoryIcon} title="History" subtitle="Your predictions. Demo credits only." />
 
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter predictions">
         {FILTERS.map((f) => (

@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { buildPlot, type PlotBox } from '../lib/chart'
-import { dateTime } from '../lib/format'
+import { dateTime, price } from '../lib/format'
 import type { ChartResponse } from '../lib/types'
 
 const BOX: PlotBox = { width: 340, height: 190, left: 8, right: 62, top: 16, bottom: 24 }
@@ -9,9 +9,17 @@ function clock(iso: string): string {
   return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso))
 }
 
-export function PriceChart({ points, lastPrice }: { points: ChartResponse['points']; lastPrice: string | null }) {
+export function PriceChart({
+  points,
+  lastPrice,
+  target,
+}: {
+  points: ChartResponse['points']
+  lastPrice: string | null
+  target?: string | null
+}) {
   const gradientId = useId()
-  const plot = buildPlot(points, BOX)
+  const plot = buildPlot(points, BOX, 5, target ? Number(target) : null)
 
   if (!plot) {
     return (
@@ -49,6 +57,15 @@ export function PriceChart({ points, lastPrice }: { points: ChartResponse['point
       <path d={plot.area} fill={`url(#${gradientId})`} />
       <path d={plot.line} fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={plot.last.x} cy={plot.last.y} r="4" fill="#fff" stroke="#8b5cf6" strokeWidth="2" />
+      {plot.targetY !== null && target && (
+        <g className="animate-fade-in">
+          <line x1={BOX.left} x2={BOX.width - BOX.right} y1={plot.targetY} y2={plot.targetY} stroke="#4f8cff" strokeWidth="1.5" strokeDasharray="5 4" />
+          <rect x={BOX.left + 2} y={plot.targetY - 9} width={104} height={18} rx={5} fill="#1d4ed8" />
+          <text x={BOX.left + 54} y={plot.targetY + 4} fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle">
+            {plot.targetOff === 'above' ? '▲ ' : plot.targetOff === 'below' ? '▼ ' : ''}TARGET {price(target)}
+          </text>
+        </g>
+      )}
       {lastPrice && (
         <g>
           <rect x={BOX.width - BOX.right + 2} y={plot.last.y - 9} width={58} height={18} rx={5} fill="#4f46e5" />

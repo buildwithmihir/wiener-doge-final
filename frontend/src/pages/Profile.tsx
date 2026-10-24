@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Copy } from 'lucide-react'
+import { Copy, User as UserIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError } from '../lib/api'
@@ -169,7 +169,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <PageTitle title="Profile" subtitle="Demo account. No real money, no cash value." />
+      <PageTitle icon={UserIcon} title="Profile" subtitle="Demo account. No real money, no cash value." />
       {profile.isPending && <Spinner />}
       {profile.isError && <ErrorState message="Could not load your profile." onRetry={() => void profile.refetch()} />}
       {profile.data && (
