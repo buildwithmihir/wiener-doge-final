@@ -19,44 +19,17 @@ const Sol = ({ s }: { s: number }) => (
   </svg>
 )
 
-const Bnb = ({ s }: { s: number }) => (
-  <svg
-    width={s}
-    height={s}
-    viewBox="0 0 24 24"
-    fill="#1a1405"
-    aria-hidden="true"
-  >
-    <g transform="rotate(45 12 12)">
-      <rect x="10.2" y="10.2" width="3.6" height="3.6" />
-      <rect x="10.2" y="4.6" width="3.6" height="3.6" />
-      <rect x="10.2" y="15.8" width="3.6" height="3.6" />
-      <rect x="4.6" y="10.2" width="3.6" height="3.6" />
-      <rect x="15.8" y="10.2" width="3.6" height="3.6" />
-    </g>
-  </svg>
-)
 
-const STYLES: Record<
-  string,
-  { bg: string; glyph: (s: number) => ReactElement }
-> = {
+
+const STYLES: Record<string, { bg: string; glyph: (s: number) => ReactElement }> = {
   SOL: {
     bg: 'from-[#14f195] to-[#9945ff]',
     glyph: (s) => <Sol s={s} />,
   },
-  BNB: {
-    bg: 'from-[#ffd54a] to-[#f0b90b]',
-    glyph: (s) => <Bnb s={s} />,
-  },
   WIENER: {
     bg: 'from-[#ffb347] to-[#ff5e62]',
     glyph: (s) => (
-      <Dog
-        style={{ width: s, height: s }}
-        strokeWidth={2.4}
-        className="text-white"
-      />
+      <Dog style={{ width: s, height: s }} strokeWidth={2.4} className="text-white" />
     ),
   },
 }

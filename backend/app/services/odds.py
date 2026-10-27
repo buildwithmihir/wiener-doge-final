@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from math import erf, log, sqrt
 
-VOL = {"SOL": 0.65, "BNB": 0.45, "WIENER": 1.6}   # annualised volatility
+VOL = {"SOL": 0.65, "WIENER": 1.6}   # annualised volatility
 DEFAULT_VOL = 0.8
 MARGIN = 0.075                                    # at-the-money => (1-0.075)/0.5 = 1.85x
 MIN_BPS, MAX_BPS = 10_500, 100_000                # 1.05x .. 10x (DB limit)
