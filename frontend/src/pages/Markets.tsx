@@ -1,112 +1,53 @@
-import { BarChart3 } from 'lucide-react'
+
+
+  
+import { ChevronRight } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
-import { MarketCard, type Direction } from '../components/MarketCard'
 import { AssetIcon } from '../components/AssetIcon'
-import { Segmented } from '../components/Segmented'
-import { StrikeLadder } from '../components/StrikeLadder'
-import { EmptyState, ErrorState, Spinner } from '../components/ui'
-import { dateTime, durationFull } from '../lib/format'
-import { nearestStrike, roundsFor } from '../lib/ladder'
-import { useMarkets } from '../lib/queries'
+import { Badge, EmptyState, ErrorState, Spinner } from '../components/ui'
+import { price } from '../lib/format'
+import { useAssets } from '../lib/queries'
 
 export default function MarketsPage() {
-  const markets = useMarkets()
-  const [symbol, setSymbol] = useState<string | null>(null)
-  const [duration, setDuration] = useState<number | null>(null)
-  const [closesAt, setClosesAt] = useState<string | null>(null)
-  const [marketId, setMarketId] = useState<string | null>(null)
-  const [direction, setDirection] = useState<Direction | null>(null)
-
-  if (markets.isPending) return <Spinner />
-  if (markets.isError) return <ErrorState message="Could not load markets." onRetry={() => void markets.refetch()} />
-
-  const all = markets.data
-  if (all.length === 0) {
-    return (
-      <EmptyState
-        icon={BarChart3}
-        title="No open markets yet"
-        text="New markets are added by the team. Check back soon."
-        action={
-          <Link to="/wallet" className="btn-ghost">
-            View wallet
-          </Link>
-        }
-      />
-    )
-  }
-
-  const symbols = [...new Set(all.map((m) => m.symbol))]
-  const activeSymbol = symbol && symbols.includes(symbol) ? symbol : symbols[0]!
-  const ofSymbol = all.filter((m) => m.symbol === activeSymbol)
-  const durations = [...new Set(ofSymbol.map((m) => m.duration_seconds))].sort((a, b) => a - b)
-  const activeDuration = duration && durations.includes(duration) ? duration : durations[0]!
-  const rounds = roundsFor(all, activeSymbol, activeDuration)
-  const round = rounds.find((r) => r.closesAt === closesAt) ?? rounds[0]!
-  const active =
-    round.strikes.find((m) => m.id === marketId) ?? nearestStrike(round.strikes, round.strikes[0]!.last_price) ?? round.strikes[0]!
-
-  // Odds shown on each timeframe tab come from that timeframe's own markets.
-  const oddsFor = (d: number) => ofSymbol.find((m) => m.duration_seconds === d)?.payout_multiplier
-
-  const picker = (
-    <>
-      <Segmented
-        label="Timeframe"
-        value={activeDuration}
-        onChange={(d) => {
-          setDuration(d)
-          setMarketId(null)
-          setClosesAt(null)
-        }}
-        options={durations.map((d) => ({
-          value: d,
-          label: durationFull(d),
-          sub: oddsFor(d) ? `${oddsFor(d)}x odds` : undefined,
-        }))}
-      />
-      {rounds.length > 1 && (
-        <Segmented
-          label="Round"
-          value={round.closesAt}
-          onChange={(c) => {
-            setClosesAt(c)
-            setMarketId(null)
-          }}
-          options={rounds.map((r) => ({ value: r.closesAt, label: `Closes ${dateTime(r.closesAt)}` }))}
-        />
-      )}
-      {round.strikes.length > 1 && (
-        <StrikeLadder strikes={round.strikes} selectedId={active.id} lastPrice={active.last_price} onSelect={(id) => setMarketId(id)} />
-      )}
-    </>
-  )
-
+  const assets = useAssets()
   return (
-    <div className="space-y-3">
-      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(symbols.length, 3)}, minmax(0, 1fr))` }} role="group" aria-label="Asset">
-        {symbols.map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => {
-              setSymbol(s)
-              setMarketId(null)
-              setClosesAt(null)
-            }}
-            className={`flex items-center justify-center gap-2 rounded-2xl border px-3 py-2 font-display text-sm font-bold transition-all duration-300 active:scale-95 ${
-              s === activeSymbol ? 'pick-selected' : 'pick-idle'
-            }`}
-          >
-            <AssetIcon symbol={s} size={26} /> {s}
-          </button>
-        ))}
-      </div>
-
-      <div key={`${activeSymbol}-${activeDuration}`} className="animate-fade-up">
-        <MarketCard market={active} loadedAt={markets.dataUpdatedAt} direction={direction} onDirection={setDirection} picker={picker} />
-      </div>
+    <div>
+      <h1 className="font-display mb-4 mt-1 bg-gradient-to-r from-neon-cyan via-neon-blue to-neon-violet bg-clip-text text-3xl font-extrabold text-transparent">
+        Markets available
+      </h1>
+      {assets.isPending && <Spinner />}
+      {assets.isError && <ErrorState message="Could not load markets." onRetry={() => void assets.refetch()} />}
+      {assets.data?.length === 0 && <EmptyState title="No assets yet" text="Check back soon." />}
+      <ul className="space-y-3">
+        {assets.data?.map((a) => {
+          const up = a.change_pct ? !a.change_pct.startsWith('-') : true
+          return (
+            <li key={a.symbol}>
+              <Link to={`/market/${a.symbol}`} className="glass flex animate-fade-up items-center gap-4 p-4 transition active:scale-[0.98]">
+                <AssetIcon symbol={a.symbol} size={52} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-display text-lg font-bold text-white">{a.symbol}</p>
+                  <p className="text-xs text-slate-400">
+                    {a.name} · {a.open_markets} market{a.open_markets === 1 ? '' : 's'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-display-num text-lg font-bold text-white">{a.last_price ? `$${price(a.last_price)}` : '—'}</p>
+                  {a.change_pct ? (
+                    <Badge tone={up ? 'up' : 'down'}>
+                      {up ? '▲ +' : '▼ '}
+                      {a.change_pct}%
+                    </Badge>
+                  ) : (
+                    <p className="text-xs text-slate-500">24h n/a</p>
+                  )}
+                </div>
+                <ChevronRight className="h-5 w-5 text-slate-500" aria-hidden />
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
     </div>
   )
 }

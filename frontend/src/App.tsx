@@ -11,6 +11,7 @@ import MarketsPage from './pages/Markets'
 import ProfilePage from './pages/Profile'
 import VipPage from './pages/Vip'
 import WalletPage from './pages/Wallet'
+import MarketDetailPage from './pages/MarketDetail'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 15_000 } },
@@ -40,6 +41,7 @@ function Gate() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<MarketsPage />} />
+        <Route path="market/:symbol" element={<MarketDetailPage />} />
         <Route path="wallet" element={<WalletPage />} />
         <Route path="history" element={<HistoryPage />} />
         <Route path="vip" element={<VipPage />} />

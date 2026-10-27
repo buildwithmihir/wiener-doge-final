@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
-
+from app.services.odds import odds_bps   # top imports
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -37,6 +37,8 @@ STATUSES = ("draft", "open", "paused", "closed", "settling", "settled", "voided"
 _SELECT = """
 select m.id, a.symbol, a.name as asset_name, m.duration_seconds, m.target_price,
        m.opens_at, m.betting_closes_at, m.closes_at, m.status, m.payout_bps,
+              coalesce(m.payout_above_bps, m.payout_bps) as payout_above_bps,
+       coalesce(m.payout_below_bps, m.payout_bps) as payout_below_bps,
        m.min_stake, m.max_stake, m.terms_version, m.pause_reason,
        case when m.status = 'open' and now() >= m.betting_closes_at then 'closed'
             else m.status end as effective_status,
@@ -217,6 +219,7 @@ def create_market(
     payout_bps: int | None = None,
     min_stake: int | None = None,
     max_stake: int | None = None,
+    payout_above_bps: int | None = None, payout_below_bps: int | None = None,
 ) -> dict:
     """Create a market (open for predictions when publish=True, otherwise a draft)."""
     reason = (reason or "").strip()
@@ -236,8 +239,20 @@ def create_market(
     if asset_id is None:
         raise AppError("asset_not_supported", "This asset is not available for predictions.", 422)
 
-    extra = {k: v for k, v in (("payout_bps", payout_bps), ("min_stake", min_stake), ("max_stake", max_stake))
-             if v is not None}
+
+    if payout_above_bps is None and payout_below_bps is None:
+        if payout_bps is not None:
+            payout_above_bps = payout_below_bps = payout_bps
+        else:
+            try:   # auto odds from the live price
+                payout_above_bps, payout_below_bps = odds_bps(symbol, latest_good_price(db, symbol), price, duration_seconds)
+            except AppError:
+                payout_above_bps = payout_below_bps = 18000
+    payout_bps = payout_above_bps
+    extra = {k: v for k, v in (("payout_bps", payout_bps), ("payout_above_bps", payout_above_bps),
+                               ("payout_below_bps", payout_below_bps),
+                               ("min_stake", min_stake), ("max_stake", max_stake)) if v is not None}
+     
     for key, value in extra.items():
         if isinstance(value, bool) or not isinstance(value, int):
             raise AppError("invalid_value", f"{key} must be a whole number.", 422)
@@ -356,3 +371,27 @@ def create_ladder(
                 payout_bps=bps if bps is not None else DEFAULT_PAYOUT_BPS.get(duration, 18000),
             ))
     return {"base_price": base, "created": created, "skipped": skipped}
+
+def list_assets(db: Session) -> list[dict]:
+    rows = db.execute(
+        text("""select a.symbol, a.name, s.price as last_price, p.price as old_price,
+                       (select count(*) from markets m where m.asset_id = a.id
+                          and m.status in ('open','paused') and m.betting_closes_at > now()) as open_markets
+                from assets a
+                left join lateral (select price from market_price_snapshots
+                                   where asset_id = a.id and not is_stale and not is_anomalous
+                                   order by fetched_at desc limit 1) s on true
+                left join lateral (select price from market_price_snapshots
+                                   where asset_id = a.id and not is_stale and not is_anomalous
+                                     and fetched_at <= now() - interval '24 hours'
+                                   order by fetched_at desc limit 1) p on true
+                where a.is_prediction_asset and a.is_active order by a.symbol""")
+    ).mappings().all()
+    out = []
+    for r in rows:
+        change = None
+        if r["last_price"] is not None and r["old_price"]:
+            change = str(((Decimal(r["last_price"]) - Decimal(r["old_price"])) / Decimal(r["old_price"]) * 100).quantize(Decimal("0.01")))
+        out.append({"symbol": r["symbol"], "name": r["name"], "last_price": r["last_price"],
+                    "change_pct": change, "open_markets": int(r["open_markets"])})
+    return out

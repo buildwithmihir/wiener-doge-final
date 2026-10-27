@@ -10,9 +10,13 @@ export interface Plot {
   min: number
   max: number
   decimals: number
+<<<<<<< HEAD
   /** Y of the target line (clamped inside the plot) and whether the real target is off the chart. */
   targetY: number | null
   targetOff: 'above' | 'below' | null
+=======
+  dots: { x: number; y: number; t: string; price: string }[]
+>>>>>>> e5a9d95 (More)
 }
 
 export interface PlotBox {
@@ -31,6 +35,7 @@ export function priceDecimals(min: number, max: number): number {
   return Math.max(2, Math.min(10, Math.ceil(-Math.log10(step)) + 1))
 }
 
+<<<<<<< HEAD
 export function buildPlot(
   points: ChartResponse['points'],
   box: PlotBox,
@@ -39,6 +44,11 @@ export function buildPlot(
 ): Plot | null {
   const data = points
     .map((p) => ({ t: Date.parse(p.t), v: Number(p.price) }))
+=======
+export function buildPlot(points: ChartResponse['points'], box: PlotBox, tickCount = 5): Plot | null {
+    const data = points
+    .map((p) => ({ t: Date.parse(p.t), v: Number(p.price), raw: p }))
+>>>>>>> e5a9d95 (More)
     .filter((p) => Number.isFinite(p.t) && Number.isFinite(p.v))
   if (data.length < 2) return null
 
@@ -60,7 +70,7 @@ export function buildPlot(
   const pad = (hi - lo) * 0.08
   const min = lo - pad
   const max = hi + pad
-
+  const dots = data.map((p, i) => ({ x: coords[i]![0], y: coords[i]![1], t: p.raw.t, price: p.raw.price }))
   const innerW = box.width - box.left - box.right
   const innerH = box.height - box.top - box.bottom
   const x = (t: number) => box.left + (t1 === t0 ? innerW : ((t - t0) / (t1 - t0)) * innerW)

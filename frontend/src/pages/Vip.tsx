@@ -1,93 +1,238 @@
+
 import { useQuery } from '@tanstack/react-query'
-import { Check, Crown, Gem, Lock, Star, Medal, ShieldCheck, type LucideIcon } from 'lucide-react'
+import {
+  Check,
+  Crown,
+  Gem,
+  Gift,
+  Lock,
+  Medal,
+  ShieldCheck,
+  Sparkles,
+  Star,
+  type LucideIcon,
+} from 'lucide-react'
 import { api } from '../lib/api'
 import { usd } from '../lib/format'
 import { progressPct } from '../lib/vip'
 import type { VipResponse, VipTier } from '../lib/types'
 import { Progress } from '../components/shadcn/progress'
-import { Badge, ErrorState, PageTitle, Spinner } from '../components/ui'
+import { ErrorState, PageTitle, Spinner } from '../components/ui'
 
-const TIER_COLOR: Record<string, string> = {
-  Bronze: 'text-bronze',
-  Silver: 'text-silver',
-  Gold: 'text-gold',
-  Platinum: 'text-platinum',
+const TIER: Record<
+  string,
+  { grad: string; glow: string; text: string; Icon: LucideIcon }
+> = {
+  Bronze: {
+    grad: 'from-[#8a4b1f] via-[#c46d2f] to-[#f0a15f]',
+    glow: 'shadow-[0_0_28px_rgba(232,146,77,0.45)]',
+    text: 'text-bronze',
+    Icon: Medal,
+  },
+  Silver: {
+    grad: 'from-[#6b7694] via-[#aab6d6] to-[#e6ecff]',
+    glow: 'shadow-[0_0_28px_rgba(184,196,230,0.45)]',
+    text: 'text-silver',
+    Icon: ShieldCheck,
+  },
+  Gold: {
+    grad: 'from-[#b8791a] via-[#f5b942] to-[#ffe08a]',
+    glow: 'shadow-[0_0_32px_rgba(245,185,66,0.55)]',
+    text: 'text-gold',
+    Icon: Crown,
+  },
+  Platinum: {
+    grad: 'from-[#5b3fd0] via-[#a78bfa] to-[#2ee6ff]',
+    glow: 'shadow-[0_0_34px_rgba(167,139,250,0.6)]',
+    text: 'text-platinum',
+    Icon: Gem,
+  },
 }
 
-const TIER_ICON: Record<string, LucideIcon> = { Bronze: Medal, Silver: ShieldCheck, Gold: Crown, Platinum: Gem }
+const FALLBACK = TIER.Bronze!
 
-function TierCard({ t, isNext }: { t: VipTier; isNext: boolean }) {
+function TierRow({
+  t,
+  isNext,
+  last,
+}: {
+  t: VipTier
+  isNext: boolean
+  last: boolean
+}) {
+  const s = TIER[t.name] ?? FALLBACK
+  const Icon = s.Icon
+
   return (
-    <li className={`glass-flat animate-fade-up p-4 ${isNext ? 'ring-1 ring-neon-blue/50' : ''} ${t.unlocked ? '' : 'opacity-90'}`}>
-      <div className="flex items-center justify-between">
-        <p className={`flex items-center gap-3 text-lg font-bold ${TIER_COLOR[t.name] ?? 'text-white'}`}>
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-ink-900/70 shadow-glow">
-            {(() => {
-              const Icon = TIER_ICON[t.name] ?? Medal
-              return <Icon className="h-5 w-5" />
-            })()}
-          </span>
-          {t.name}
+    <li className="relative flex animate-fade-up gap-4">
+      {!last && (
+        <span
+          aria-hidden
+          className={`absolute left-[27px] top-14 h-[calc(100%-2rem)] w-0.5 ${
+            t.unlocked
+              ? 'bg-gradient-to-b from-up to-white/10'
+              : 'bg-white/10'
+          }`}
+        />
+      )}
+
+      <span
+        className={`relative z-10 flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${s.grad} text-white ${
+          t.unlocked ? s.glow : 'opacity-40 grayscale'
+        }`}
+      >
+        <Icon className="h-7 w-7" strokeWidth={2.2} />
+        {t.unlocked && (
+          <Check className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-up p-0.5 text-ink-950" />
+        )}
+      </span>
+
+      <div
+        className={`glass-flat mb-4 min-w-0 flex-1 p-4 ${
+          isNext ? 'ring-1 ring-neon-blue/60' : ''
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <p
+            className={`font-display text-lg font-bold ${
+              t.unlocked ? s.text : 'text-slate-300'
+            }`}
+          >
+            {t.name}
+          </p>
+
+          {t.unlocked ? (
+            <span className="rounded-full bg-up/15 px-2.5 py-0.5 text-xs font-bold text-up">
+              Unlocked
+            </span>
+          ) : (
+            <span className="flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-0.5 text-xs font-semibold text-slate-400">
+              <Lock className="h-3 w-3" /> {usd(t.min_staked)}
+            </span>
+          )}
+        </div>
+
+        <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-300">
+          <Gift className="h-4 w-4 text-gold" />
+          Bonus{' '}
+          <span className="num font-bold text-white">{usd(t.reward)}</span>
+          {' '}demo credits
         </p>
-        {t.unlocked ? (
-          <Badge tone="up">
-            <Check className="mr-1 inline h-3 w-3" aria-hidden />
-            Unlocked
-          </Badge>
-        ) : (
-          <Badge>
-            <Lock className="mr-1 inline h-3 w-3" aria-hidden />
-            {usd(t.min_staked)} staked
-          </Badge>
+
+        {t.benefits.length > 0 && (
+          <ul className="mt-2 flex flex-wrap gap-1.5">
+            {t.benefits.map((b) => (
+              <li
+                key={b}
+                className="flex items-center gap-1 rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-slate-300"
+              >
+                <Sparkles className="h-3 w-3 text-neon-cyan" />
+                {b}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-      <p className="mt-1 text-sm text-slate-300">
-        One-time bonus: <span className="num font-semibold text-white">{usd(t.reward)}</span> demo credits
-      </p>
-      {t.benefits.length > 0 && (
-        <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-slate-400">
-          {t.benefits.map((b) => (
-            <li key={b}>{b}</li>
-          ))}
-        </ul>
-      )}
     </li>
   )
 }
 
 export default function VipPage() {
-  const vip = useQuery({ queryKey: ['vip'], queryFn: () => api<VipResponse>('/vip') })
+  const vip = useQuery({
+    queryKey: ['vip'],
+    queryFn: () => api<VipResponse>('/vip'),
+  })
+
+  const cur = vip.data?.current
+    ? TIER[vip.data.current.name] ?? FALLBACK
+    : null
+
+  const HeroIcon = cur?.Icon ?? Star
 
   return (
     <>
-      <PageTitle icon={Star} title="VIP" subtitle="Stake demo credits to unlock tiers. Rewards are demo credits too." />
+      <PageTitle
+        icon={Star}
+        title="VIP Club"
+        subtitle="Stake demo credits to level up. Rewards are demo credits too."
+      />
+
       {vip.isPending && <Spinner />}
-      {vip.isError && <ErrorState message="Could not load VIP tiers." onRetry={() => void vip.refetch()} />}
+
+      {vip.isError && (
+        <ErrorState
+          message="Could not load VIP tiers."
+          onRetry={() => void vip.refetch()}
+        />
+      )}
+
       {vip.data && (
-        <div className="space-y-3">
-          <div className="glass p-5">
-            <p className="text-sm text-slate-400">Total staked</p>
-            <p className="num mt-1 text-3xl font-bold text-white">{usd(vip.data.total_staked)}</p>
-            <p className="mt-1 text-sm text-slate-300">
-              Current tier: <span className="font-semibold">{vip.data.current?.name ?? 'None yet'}</span>
-            </p>
-            {vip.data.next && vip.data.remaining_to_next ? (
-              <>
-                <Progress className="mt-3" value={progressPct(vip.data)} aria-label={`Progress to ${vip.data.next.name}`} />
-                <p className="mt-2 text-xs text-slate-400">
-                  {usd(vip.data.remaining_to_next)} more to reach {vip.data.next.name}
+        <div>
+          <div
+            className={`relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-br ${
+              cur?.grad ?? 'from-ink-700 via-neon-blue/60 to-neon-violet'
+            } p-5 shadow-card`}
+          >
+            <div
+              aria-hidden
+              className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/20 blur-2xl"
+            />
+
+            <div className="relative flex items-center gap-4">
+              <span className="flex h-16 w-16 items-center justify-center rounded-2xl bg-black/25 text-white backdrop-blur">
+                <HeroIcon className="h-9 w-9" strokeWidth={2.2} />
+              </span>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-widest text-white/80">
+                  Current tier
                 </p>
-              </>
+                <p className="font-display text-3xl font-extrabold text-white">
+                  {vip.data.current?.name ?? 'Rookie'}
+                </p>
+              </div>
+            </div>
+
+            <p className="relative mt-4 text-sm text-white/80">
+              Total staked
+            </p>
+            <p className="num relative text-3xl font-bold text-white">
+              {usd(vip.data.total_staked)}
+            </p>
+
+            {vip.data.next && vip.data.remaining_to_next ? (
+              <div className="relative mt-3">
+                <Progress
+                  value={progressPct(vip.data)}
+                  aria-label={`Progress to ${vip.data.next.name}`}
+                  className="h-3 bg-black/30"
+                />
+                <p className="mt-2 text-xs font-medium text-white/90">
+                  {usd(vip.data.remaining_to_next)} more to reach{' '}
+                  <b>{vip.data.next.name}</b>
+                </p>
+              </div>
             ) : (
-              <p className="mt-2 text-xs text-up">You reached the top tier.</p>
+              <p className="relative mt-3 text-sm font-bold text-white">
+                👑 Top tier reached!
+              </p>
             )}
           </div>
-          <ul className="space-y-3">
-            {vip.data.tiers.map((t) => (
-              <TierCard key={t.id} t={t} isNext={vip.data.next?.id === t.id} />
+
+          <ul>
+            {vip.data.tiers.map((t, i) => (
+              <TierRow
+                key={t.id}
+                t={t}
+                isNext={vip.data.next?.id === t.id}
+                last={i === vip.data.tiers.length - 1}
+              />
             ))}
           </ul>
-          <p className="px-1 text-center text-xs text-slate-500">Demo credits only. No cash value, not redeemable.</p>
+
+          <p className="px-1 text-center text-xs text-slate-500">
+            Demo credits only. No cash value, not redeemable.
+          </p>
         </div>
       )}
     </>

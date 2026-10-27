@@ -10,6 +10,11 @@ from sqlalchemy.orm import Session
 from app.api.serialize import market_out
 from app.database import get_db
 from app.services.markets import get_market, list_markets, price_chart
+from app.api.serialize import market_out, price
+from app.services.markets import get_market, list_assets, list_markets, price_chart
+
+
+
 
 router = APIRouter(tags=["markets"])
 
@@ -37,3 +42,6 @@ def read_market(market_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]):
 def read_chart(symbol: Annotated[str, Path(max_length=16)], db: Annotated[Session, Depends(get_db)],
                range: Annotated[str, Query(max_length=4)] = "24h"):
     return price_chart(db, symbol, range)
+@router.get("/assets")
+def read_assets(db: Annotated[Session, Depends(get_db)]):
+    return {"items": [{**a, "last_price": price(a["last_price"])} for a in list_assets(db)]}

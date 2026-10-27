@@ -24,3 +24,13 @@ export function useChart(symbol: string, range: ChartRange) {
     queryFn: () => api<ChartResponse>(`/assets/${encodeURIComponent(symbol)}/chart?range=${range}`),
   })
 }
+
+import type { AssetRow } from './types'
+
+export function useAssets() {
+  return useQuery({
+    queryKey: ['assets'],
+    refetchInterval: 30_000,
+    queryFn: async () => (await api<{ items: AssetRow[] }>('/assets')).items,
+  })
+}

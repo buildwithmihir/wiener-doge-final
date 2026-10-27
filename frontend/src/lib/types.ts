@@ -55,10 +55,21 @@ export interface Market {
   settle_price: string | null
   settled_at: string | null
   rule: string
+  // Market interface me add:
+  odds_above: string
+  odds_below: string
+
+
 }
 
 export type PredictionStatus = 'open' | 'won' | 'lost' | 'refunded'
-
+export interface AssetRow {
+  symbol: string
+  name: string
+  last_price: string | null
+  change_pct: string | null
+  open_markets: number
+}
 export interface Prediction {
   id: string
   market_id: string
