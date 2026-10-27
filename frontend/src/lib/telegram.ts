@@ -18,7 +18,7 @@ declare global {
   }
 }
 
-const THEME = '#04061a'
+const THEME = '#000000'
 
 export function getWebApp(): TelegramWebApp | undefined {
   return typeof window === 'undefined' ? undefined : window.Telegram?.WebApp

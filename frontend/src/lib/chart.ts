@@ -28,6 +28,7 @@ export interface PlotBox {
 
 /** Enough decimals that neighbouring axis labels differ (SOL ~2, a tiny token ~7). */
 export function priceDecimals(min: number, max: number): number {
+  if (min >= 1) return 2
   const step = (max - min) / 4
 
   if (!(step > 0)) return 2
