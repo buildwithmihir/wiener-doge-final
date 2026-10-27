@@ -17,9 +17,15 @@ export function usd(money: Money | string, maxDecimals = 2): string {
   return `${raw.startsWith('-') ? '-' : ''}$${body}`
 }
 
-/** Prices keep their own precision; only thousands separators are added. */
+/**
+ * Market prices. Prices of 1 or more (SOL etc.) show exactly 2 decimals ("119.40").
+ * Prices below 1 (tiny tokens like WIENER) keep their full precision, otherwise they would show as "0.00".
+ */
 export function price(value: string | null | undefined): string {
-  return value ? withCommas(value) : '—'
+  if (!value) return '—'
+  const n = Number(value)
+  if (Number.isFinite(n) && n >= 1) return withCommas(n.toFixed(2))
+  return withCommas(value)
 }
 
 export function durationLabel(seconds: number): string {

@@ -17,9 +17,16 @@ describe('format', () => {
     expect(usd('0.001')).toBe('$0')
   })
 
-  it('keeps market prices at full precision', () => {
-    expect(price('119.4')).toBe('119.4')
+  it('shows prices of 1 or more with exactly 2 decimals', () => {
+    expect(price('119.4')).toBe('119.40')
+    expect(price('119.4156')).toBe('119.42')
+    expect(price('1234.5678')).toBe('1,234.57')
+    expect(price('100')).toBe('100.00')
+  })
+
+  it('keeps tiny prices at full precision', () => {
     expect(price('0.00012345')).toBe('0.00012345')
+    expect(price('0.5')).toBe('0.5')
     expect(price(null)).toBe('—')
   })
 

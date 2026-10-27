@@ -1,63 +1,53 @@
-
 import { Dog } from 'lucide-react'
-import type { ReactElement } from 'react'
+import { useId, type ReactElement } from 'react'
 
-const Sol = ({ s }: { s: number }) => (
-  <svg
-    width={s}
-    height={s}
-    viewBox="0 0 24 24"
-    fill="#fff"
-    aria-hidden="true"
-  >
-    <path d="M6.2 15.6h13.2c.3 0 .5.4.3.6l-2.4 2.5a.8.8 0 0 1-.6.3H3.5c-.3 0-.5-.4-.3-.6l2.4-2.5c.1-.2.4-.3.6-.3Z" />
-    <path d="M6.2 5.4h13.2c.3 0 .5.4.3.6L17.3 8.5a.8.8 0 0 1-.6.3H3.5c-.3 0-.5-.4-.3-.6l2.4-2.5c.1-.2.4-.3.6-.3Z" />
-    <path
-      d="M17.3 10.4H4.1a.8.8 0 0 0-.6.3L1.1 13.2c-.2.2 0 .6.3.6h13.2c.2 0 .4-.1.6-.3l2.4-2.5c.2-.2 0-.6-.3-.6Z"
-      transform="translate(2.9 -0.2)"
-    />
-  </svg>
-)
+/** Official Solana logo (three bars) with its green-to-purple gradient, drawn on a black circle. */
+function SolGlyph({ s }: { s: number }) {
+  const id = useId()
+  return (
+    <svg width={s} height={s * 0.784} viewBox="0 0 397.7 311.7" aria-hidden="true">
+      <defs>
+        <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="311.7" x2="397.7" y2="0">
+          <stop offset="0" stopColor="#00FFA3" />
+          <stop offset="1" stopColor="#DC1FFF" />
+        </linearGradient>
+      </defs>
+      <g fill={`url(#${id})`}>
+        <path d="M64.6 237.9c2.4-2.4 5.7-3.8 9.2-3.8h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1l62.7-62.7z" />
+        <path d="M64.6 3.8C67.1 1.4 70.4 0 73.8 0h317.4c5.8 0 8.7 7 4.6 11.1l-62.7 62.7c-2.4 2.4-5.7 3.8-9.2 3.8H6.5c-5.8 0-8.7-7-4.6-11.1L64.6 3.8z" />
+        <path d="M333.1 120.1c-2.4-2.4-5.7-3.8-9.2-3.8H6.5c-5.8 0-8.7 7-4.6 11.1l62.7 62.7c2.4 2.4 5.7 3.8 9.2 3.8h317.4c5.8 0 8.7-7 4.6-11.1l-62.7-62.7z" />
+      </g>
+    </svg>
+  )
+}
 
-
-
-const STYLES: Record<string, { bg: string; glyph: (s: number) => ReactElement }> = {
+const STYLES: Record<string, { ring: string; glow: string; glyph: (s: number) => ReactElement }> = {
   SOL: {
-    bg: 'from-[#14f195] to-[#9945ff]',
-    glyph: (s) => <Sol s={s} />,
+    ring: 'ring-white/15',
+    glow: 'shadow-[0_0_22px_rgba(153,69,255,0.35)]',
+    glyph: (s) => <SolGlyph s={s} />,
   },
   WIENER: {
-    bg: 'from-[#ffb347] to-[#ff5e62]',
-    glyph: (s) => (
-      <Dog style={{ width: s, height: s }} strokeWidth={2.4} className="text-white" />
-    ),
+    ring: 'ring-[#ffb347]/50',
+    glow: 'shadow-[0_0_22px_rgba(255,150,60,0.35)]',
+    glyph: (s) => <Dog style={{ width: s, height: s }} strokeWidth={2.2} className="text-[#ffb347]" />,
   },
 }
 
-export function AssetIcon({
-  symbol,
-  size = 48,
-}: {
-  symbol: string
-  size?: number
-}) {
+export function AssetIcon({ symbol, size = 48 }: { symbol: string; size?: number }) {
   const style = STYLES[symbol] ?? {
-    bg: 'from-neon-blue to-neon-violet',
-    glyph: (s: number) => (
-      <Dog
-        style={{ width: s, height: s }}
-        className="text-white"
-      />
-    ),
+    ring: 'ring-white/15',
+    glow: 'shadow-glow',
+    glyph: (s: number) => <Dog style={{ width: s, height: s }} className="text-white" />,
   }
 
   return (
     <span
       aria-hidden="true"
       style={{ width: size, height: size }}
-      className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${style.bg} shadow-glow ring-2 ring-white/25`}
+      className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#1c1c1c] to-black ring-2 ${style.ring} ${style.glow}`}
     >
-      {style.glyph(size * 0.55)}
+      {style.glyph(size * 0.5)}
     </span>
   )
 }
