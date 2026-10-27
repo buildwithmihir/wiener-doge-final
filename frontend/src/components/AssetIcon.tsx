@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { Coins, Dog } from 'lucide-react'
 
 const STYLES: Record<string, { bg: string; Icon: typeof Coins }> = {
@@ -8,7 +7,6 @@ const STYLES: Record<string, { bg: string; Icon: typeof Coins }> = {
 
 export function AssetIcon({ symbol, size = 48 }: { symbol: string; size?: number }) {
   const { bg, Icon } = STYLES[symbol] ?? { bg: 'from-neon-blue to-neon-violet', Icon: Coins }
-=======
 import { Dog } from 'lucide-react'
 
 const Sol = ({ s }: { s: number }) => (
@@ -39,20 +37,17 @@ const STYLES: Record<string, { bg: string; glyph: (s: number) => JSX.Element }> 
 
 export function AssetIcon({ symbol, size = 48 }: { symbol: string; size?: number }) {
   const style = STYLES[symbol] ?? { bg: 'from-neon-blue to-neon-violet', glyph: (s: number) => <Dog style={{ width: s, height: s }} className="text-white" /> }
->>>>>>> e5a9d95 (More)
   return (
     <span
       aria-hidden
       style={{ width: size, height: size }}
-<<<<<<< HEAD
       className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${bg} text-ink-950 shadow-glow ring-2 ring-white/20`}
     >
       <Icon style={{ width: size * 0.5, height: size * 0.5 }} strokeWidth={2.4} />
-=======
+
       className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${style.bg} shadow-glow ring-2 ring-white/25`}
     >
       {style.glyph(size * 0.55)}
->>>>>>> e5a9d95 (More)
     </span>
   )
 }

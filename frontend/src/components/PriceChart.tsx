@@ -10,7 +10,6 @@ function clock(iso: string): string {
   return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso))
 }
 
-<<<<<<< HEAD
 export function PriceChart({
   points,
   lastPrice,
@@ -21,12 +20,10 @@ export function PriceChart({
   target?: string | null
 }) {
   const gradientId = useId()
-=======
 export function PriceChart({ points, lastPrice, target }: { points: ChartResponse['points']; lastPrice: string | null; target?: string | null }) {
   const gradientId = useId()
   const svgRef = useRef<SVGSVGElement>(null)
   const [hover, setHover] = useState<number | null>(null)
->>>>>>> e5a9d95 (More)
   const plot = buildPlot(points, BOX, 5, target ? Number(target) : null)
 
   if (!plot) {
@@ -88,13 +85,11 @@ export function PriceChart({ points, lastPrice, target }: { points: ChartRespons
         </g>
       ))}
       <path d={plot.area} fill={`url(#${gradientId})`} />
-<<<<<<< HEAD
       <path d={plot.line} fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={plot.last.x} cy={plot.last.y} r="4" fill="#fff" stroke="#8b5cf6" strokeWidth="2" />
-=======
+
       <path d={plot.line} fill="none" stroke={GREEN} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
       {!dot && <circle cx={plot.last.x} cy={plot.last.y} r="4" fill="#fff" stroke={GREEN} strokeWidth="2" />}
->>>>>>> e5a9d95 (More)
       {plot.targetY !== null && target && (
         <g className="animate-fade-in">
           <line x1={BOX.left} x2={BOX.width - BOX.right} y1={plot.targetY} y2={plot.targetY} stroke="#4f8cff" strokeWidth="1.5" strokeDasharray="5 4" />
@@ -104,11 +99,8 @@ export function PriceChart({ points, lastPrice, target }: { points: ChartRespons
           </text>
         </g>
       )}
-<<<<<<< HEAD
       {lastPrice && (
-=======
       {!dot && lastPrice && (
->>>>>>> e5a9d95 (More)
         <g>
           <rect x={BOX.width - BOX.right + 2} y={plot.last.y - 9} width={58} height={18} rx={5} fill="#059669" />
           <text x={BOX.width - BOX.right + 31} y={plot.last.y + 4} fontSize="10" fontWeight="700" fill="#fff" textAnchor="middle">
