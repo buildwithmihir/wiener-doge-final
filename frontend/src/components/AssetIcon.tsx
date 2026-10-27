@@ -1,5 +1,6 @@
 
 import { Dog } from 'lucide-react'
+import type { ReactElement } from 'react'
 
 const Sol = ({ s }: { s: number }) => (
   <svg
@@ -38,7 +39,7 @@ const Bnb = ({ s }: { s: number }) => (
 
 const STYLES: Record<
   string,
-  { bg: string; glyph: (s: number) => JSX.Element }
+  { bg: string; glyph: (s: number) => ReactElement }
 > = {
   SOL: {
     bg: 'from-[#14f195] to-[#9945ff]',
