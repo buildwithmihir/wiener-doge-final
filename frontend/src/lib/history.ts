@@ -5,7 +5,7 @@ export type HistoryFilter = 'all' | 'open' | 'won' | 'lost' | 'refunded'
 
 export const FILTERS: { key: HistoryFilter; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'open', label: 'Open' },
+  { key: 'open', label: 'Live bets' },
   { key: 'won', label: 'Won' },
   { key: 'lost', label: 'Lost' },
   { key: 'refunded', label: 'Refunded' },

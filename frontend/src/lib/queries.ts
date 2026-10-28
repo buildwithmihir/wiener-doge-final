@@ -12,7 +12,7 @@ export function useMarkets() {
         api<{ items: Market[] }>('/markets?status=open&limit=100'),
         api<{ items: Market[] }>('/markets?status=paused&limit=100'),
       ])
-      return [...open.items, ...paused.items]
+    return [...open.items, ...paused.items].filter((m) => m.status === 'paused' || m.betting_closes_in_seconds > 0)
     },
   })
 }
