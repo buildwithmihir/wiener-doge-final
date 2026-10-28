@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import admin, auth, growth, markets, predictions, system, telegram, wallet
+from app.api.v1 import admin, auth, growth, markets, payments, predictions, system, telegram, wallet
 from app.core.logging_safety import quiet_http_loggers
 from app.config import get_settings
 from app.core.errors import register_exception_handlers
@@ -43,7 +43,7 @@ def create_app() -> FastAPI:
     )
     setup_rate_limiting(app)
     register_exception_handlers(app)
-    for module in (system, auth, wallet, markets, predictions, growth, admin, telegram):
+    for module in (system, auth, wallet, markets, predictions, growth, admin, telegram, payments):
         app.include_router(module.router, prefix=settings.api_prefix)
     return app
 

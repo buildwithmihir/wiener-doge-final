@@ -5,8 +5,9 @@ import { PageTitle } from '../components/ui'
 import MarketsAdmin from './admin/MarketsAdmin'
 import SystemAdmin from './admin/SystemAdmin'
 import UsersAdmin from './admin/UsersAdmin'
+import WithdrawalsAdmin from './admin/WithdrawalsAdmin'
 
-type Tab = 'markets' | 'users' | 'system'
+type Tab = 'markets' | 'withdrawals' | 'users' | 'system'
 
 function chipClass(active: boolean): string {
   return `shrink-0 rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
@@ -24,12 +25,18 @@ export default function AdminPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: 'markets', label: 'Markets' },
-    ...(isAdmin ? ([{ key: 'users', label: 'Users' }, { key: 'system', label: 'System' }] as { key: Tab; label: string }[]) : []),
+    ...(isAdmin
+      ? ([
+          { key: 'withdrawals', label: 'Withdrawals' },
+          { key: 'users', label: 'Users' },
+          { key: 'system', label: 'System' },
+        ] as { key: Tab; label: string }[])
+      : []),
   ]
   return (
     <>
-      <PageTitle title="Admin" subtitle="Every action needs a reason and is audited. Demo credits only." />
-      <div className="mb-3 flex gap-2" role="tablist">
+      <PageTitle title="Admin" subtitle="Every action needs a reason and is audited." />
+      <div className="mb-3 flex gap-2 overflow-x-auto" role="tablist">
         {tabs.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={chipClass(tab === t.key)} onClick={() => setTab(t.key)}>
             {t.label}
@@ -37,6 +44,7 @@ export default function AdminPage() {
         ))}
       </div>
       {tab === 'markets' && <MarketsAdmin isAdmin={isAdmin} />}
+      {tab === 'withdrawals' && isAdmin && <WithdrawalsAdmin />}
       {tab === 'users' && isAdmin && <UsersAdmin />}
       {tab === 'system' && isAdmin && <SystemAdmin />}
     </>

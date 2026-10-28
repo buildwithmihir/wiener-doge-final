@@ -209,3 +209,29 @@ export interface NotificationPrefs {
   referrals: boolean
   vip: boolean
 }
+export type PayAsset = 'SOL' | 'WIENER'
+
+export interface DepositInfo {
+  network: string
+  address: string
+  min_deposit: Money
+  assets: { symbol: PayAsset; name: string }[]
+}
+
+export type WithdrawalStatus = 'pending' | 'approved' | 'sending' | 'sent' | 'rejected' | 'failed'
+
+export interface WithdrawalItem {
+  id: string
+  status: WithdrawalStatus
+  asset: PayAsset
+  amount: Money // USD
+  native_amount: string | null // token amount, known once it is being sent
+  address: string
+  created_at: string
+  tx_signature: string | null
+  note: string | null
+}
+
+export interface AdminWithdrawal extends WithdrawalItem {
+  user_id: string
+}

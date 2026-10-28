@@ -59,9 +59,14 @@ class Settings(BaseSettings):
     dexscreener_base_url: str = "https://api.dexscreener.com"
     dex_min_liquidity_usd: int = 20000        # a pool thinner than this is not trusted for settlement
     dex_max_divergence_bps: int = 1000        # two deep pools disagreeing by more than 10% => no price
-    wiener_mint_address: str = ""
+    wiener_mint_address: str = "CceCXFy4UeXheTpf8sn1bpECxMQeH5BTyxQK4BdRMf2T"
     price_poll_seconds: int = Field(default=60, ge=15, le=3600)
 
+
+        # payments (SOL + WIENER on Solana)
+    solana_rpc_url: str = ""          # Helius / QuickNode mainnet URL (contains an API key: keep secret)
+    deposit_master_seed: str = ""     # 64 hex chars. Derives every user's deposit wallet. BACK IT UP.
+    hot_wallet_secret: str = ""       # base58 secret key of the hot wallet that sends withdrawals
     # worker / scheduler
     worker_enabled: bool = True
     # Shared secret the scheduler sends in the X-Tick-Secret header to call /internal/tick

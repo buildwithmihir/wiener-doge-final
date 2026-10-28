@@ -7,6 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, Request
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from app.payments.service import run_payments_tick
 
 from app.config import get_settings
 from app.core.errors import NotFound, Unauthorized
@@ -73,3 +74,13 @@ def run_scheduler_tick(
     if not x_tick_secret or not hmac.compare_digest(x_tick_secret.encode(), expected.encode()):
         raise Unauthorized("Invalid scheduler secret.", "invalid_tick_secret")
     return tick(db, registry, notifier=notifier)
+
+
+@router.post("/internal/payments-tick", include_in_schema=False)
+def run_payments(x_tick_secret: Annotated[str | None, Header()] = None):
+    expected = get_settings().tick_secret
+    if not expected or len(expected) < 32:
+        raise NotFound("Not found.", "not_found")
+    if not x_tick_secret or not hmac.compare_digest(x_tick_secret.encode(), expected.encode()):
+        raise Unauthorized("Invalid scheduler secret.", "invalid_tick_secret")
+    return run_payments_tick()

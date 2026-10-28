@@ -65,6 +65,10 @@ _EXPLANATIONS = {
     "admin_adjustment": "Balance adjustment by admin",
     "referral_reward": "Referral reward",
     "vip_reward": "VIP tier reward",
+    "deposit": "Deposit",
+    "withdraw_hold": "Withdrawal requested",
+    "withdraw_release": "Withdrawal rejected: refunded",
+    "withdraw_sent": "Withdrawal sent",
 }
 
 

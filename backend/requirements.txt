@@ -9,3 +9,4 @@ pydantic-settings>=2.3
 PyJWT>=2.8
 httpx>=0.27
 slowapi>=0.1.9
+solders>=0.21

@@ -92,6 +92,11 @@ DB_MESSAGE_MAP: dict[str, tuple[int, str]] = {
     "too_late_existing_user": (409, "Referral codes can only be applied before your first prediction."),
     "circular_referral": (400, "That referral is not allowed."),
     "referrer_not_active": (409, "That referral code cannot be used."),
+    "withdraw_out_of_range": (400, "Amount is outside the allowed withdrawal range."),
+    "daily_withdraw_limit": (400, "Daily withdrawal limit reached."),
+    "withdraw_bad_state": (409, "This withdrawal cannot be changed in its current state."),
+    "withdrawal_not_found": (404, "Withdrawal not found."),
+    "asset_not_supported": (400, "That asset is not supported."),
 }
 
 SQLSTATE_MAP: dict[str, tuple[int, str, str]] = {
