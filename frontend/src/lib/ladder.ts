@@ -47,3 +47,6 @@ export function nearbyStrikes(strikes: Market[], last: string | null, maxPct = 1
   const kept = strikes.filter((m) => (Math.abs(Number(m.target_price) - ref) / ref) * 100 <= maxPct)
   return kept.length > 0 ? kept : strikes
 }
+
+
+// heahhahhhhhhhhhhhhhh ddonoa odnaodna 
