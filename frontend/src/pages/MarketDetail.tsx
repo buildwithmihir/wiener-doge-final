@@ -7,7 +7,7 @@ import { Segmented } from '../components/Segmented'
 import { StrikeLadder } from '../components/StrikeLadder'
 import { EmptyState, ErrorState, Spinner } from '../components/ui'
 import { dateTime, durationFull } from '../lib/format'
-import { nearestStrike, roundsFor } from '../lib/ladder'
+import { nearbyStrikes, nearestStrike, roundsFor } from '../lib/ladder'
 import { useMarkets } from '../lib/queries'
 
 export default function MarketDetailPage() {
