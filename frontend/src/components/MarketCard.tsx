@@ -125,8 +125,10 @@ export function MarketCard({
           </div>
           <div className="px-2">
             <p className="text-[11px] text-muted-foreground">Odds</p>
-            <p className="font-display-num text-sm font-bold text-gold">{market.payout_multiplier}x</p>
-          </div>
+            <p className="font-display-num text-sm font-bold text-gold">
+              {market.odds_above}x · {market.odds_below}x
+            </p>
+                      </div>
         </div>
 
         <p className="mb-3 mt-4 text-sm font-semibold text-white">
@@ -137,6 +139,7 @@ export function MarketCard({
           {(['above', 'below'] as const).map((d) => {
             const on = direction === d
             const Icon = d === 'above' ? ArrowUp : ArrowDown
+            const odds = d === 'above' ? market.odds_above : market.odds_below
             return (
               <button
                 key={d}
@@ -165,7 +168,7 @@ export function MarketCard({
                   Wins if price {d === 'above' ? '≥' : '<'} target
                 </span>
                 <span className={cn('inline-flex w-fit items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold', on ? 'bg-white/20' : 'bg-gold/10 text-gold')}>
-                  <TrendingUp className="h-3 w-3" /> {market.payout_multiplier}x
+                  <TrendingUp className="h-3 w-3" /> {odds}x
                 </span>
               </button>
             )

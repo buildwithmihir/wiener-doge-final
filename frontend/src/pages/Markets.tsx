@@ -12,9 +12,8 @@ export default function MarketsPage() {
   const assets = useAssets()
   return (
     <div>
-      <h1 className="font-display mb-4 mt-1 bg-gradient-to-r from-neon-cyan via-neon-blue to-neon-violet bg-clip-text text-3xl font-extrabold text-transparent">
-        Markets available
-      </h1>
+      <h1 className="font-display mt-1 text-2xl font-bold tracking-tight text-white">Markets available</h1>
+      <p className="mb-4 mt-1 text-sm text-slate-400">Pick an asset and predict where the price closes.</p>
       {assets.isPending && <Spinner />}
       {assets.isError && <ErrorState message="Could not load markets." onRetry={() => void assets.refetch()} />}
       {assets.data?.length === 0 && <EmptyState title="No assets yet" text="Check back soon." />}

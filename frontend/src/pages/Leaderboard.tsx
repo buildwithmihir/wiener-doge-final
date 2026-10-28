@@ -22,6 +22,42 @@ function chipClass(active: boolean): string {
   }`
 }
 
+function Podium({ rows, metric }: { rows: LeaderboardRow[]; metric: LeaderboardMetric }) {
+  const val = (r: LeaderboardRow) =>
+    metric === 'accuracy' ? (r.accuracy_pct === null ? '—' : `${r.accuracy_pct}%`) : usd(r.staked)
+  // visual order: 2nd, 1st, 3rd
+  const slots = [
+    { r: rows[1], place: 2, h: 'h-20', c: 'from-[#5b6477] to-[#a9b2c6]', t: 'text-silver' },
+    { r: rows[0], place: 1, h: 'h-28', c: 'from-[#b8791a] to-[#f5b942]', t: 'text-gold' },
+    { r: rows[2], place: 3, h: 'h-16', c: 'from-[#8a4b1f] to-[#e8924d]', t: 'text-bronze' },
+  ]
+  return (
+    <div className="mb-4 grid grid-cols-3 items-end gap-2">
+      {slots.map(({ r, place, h, c, t }) =>
+        r ? (
+          <div key={place} className="min-w-0 text-center">
+            <Crown className={`mx-auto h-6 w-6 ${t}`} aria-hidden />
+            <p className="truncate text-sm font-semibold text-white">
+              {r.alias}
+              {r.is_me && <span className="ml-1 text-[10px] text-neon-blue">you</span>}
+            </p>
+            <p className="num text-xs text-slate-300">{val(r)}</p>
+            <div
+              className={`mt-2 flex ${h} items-start justify-center rounded-t-2xl bg-gradient-to-b ${c} pt-2 font-display text-2xl font-extrabold text-white ${
+                r.is_me ? 'ring-2 ring-white/70' : ''
+              }`}
+            >
+              {place}
+            </div>
+          </div>
+        ) : (
+          <div key={place} />
+        ),
+      )}
+    </div>
+  )
+}
+
 function Row({ r, metric }: { r: LeaderboardRow; metric: LeaderboardMetric }) {
   const main = metric === 'accuracy' ? (r.accuracy_pct === null ? '—' : `${r.accuracy_pct}%`) : usd(r.staked)
   const sub =
@@ -53,6 +89,8 @@ export default function LeaderboardPage() {
   })
 
   const meInList = lb.data?.items.some((i) => i.is_me) ?? false
+  const showPodium = (lb.data?.items.length ?? 0) >= 3
+  const listRows = lb.data ? (showPodium ? lb.data.items.slice(3) : lb.data.items) : []
 
   return (
     <>
@@ -82,8 +120,9 @@ export default function LeaderboardPage() {
       )}
       {lb.data && lb.data.items.length > 0 && (
         <>
+          {showPodium && <Podium rows={lb.data.items} metric={metric} />}
           <ol className="space-y-2">
-            {lb.data.items.map((r) => (
+            {listRows.map((r) => (
               <Row key={r.rank} r={r} metric={metric} />
             ))}
           </ol>

@@ -41,7 +41,8 @@ export default function MarketDetailPage() {
   const activeDuration = duration && durations.includes(duration) ? duration : durations[0]!
   const rounds = roundsFor(markets.data, symbol, activeDuration)
   const round = rounds.find((r) => r.closesAt === closesAt) ?? rounds[0]!
-  const active = round.strikes.find((m) => m.id === marketId) ?? nearestStrike(round.strikes, round.strikes[0]!.last_price) ?? round.strikes[0]!
+  const strikes = nearbyStrikes(round.strikes, round.strikes[0]!.last_price)
+  const active = strikes.find((m) => m.id === marketId) ?? nearestStrike(strikes, strikes[0]!.last_price) ?? strikes[0]!
 
   const picker = (
     <>
@@ -59,8 +60,8 @@ export default function MarketDetailPage() {
           options={rounds.map((r) => ({ value: r.closesAt, label: `Closes ${dateTime(r.closesAt)}` }))}
         />
       )}
-      {round.strikes.length > 1 && (
-        <StrikeLadder strikes={round.strikes} selectedId={active.id} lastPrice={active.last_price} onSelect={(id) => setMarketId(id)} />
+      {strikes.length > 1 && (
+        <StrikeLadder strikes={strikes} selectedId={active.id} lastPrice={active.last_price} onSelect={(id) => setMarketId(id)} />
       )}
     </>
   )

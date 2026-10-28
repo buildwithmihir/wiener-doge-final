@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError, NotFound
 from app.providers.health import AUTO_PAUSE_PREFIX
-
+BETTING_WINDOW_SECONDS = {86400: 2 * 3600, 172800: 3 * 3600, 604800: 6 * 3600, 2592000: 12 * 3600}
 DURATIONS = (86400, 172800, 604800, 2592000)   # 24h, 48h, 7d, 30d (same as the DB check)
 CHART_RANGES = {"1h": 3600, "6h": 21600, "24h": 86400, "7d": 604800}
 MAX_CHART_POINTS = 240
@@ -231,6 +231,8 @@ def create_market(
     # default to the DATABASE clock (not this server's), so opens_at can never be 'in the future' for the DB
     start = opens_at or db.execute(text("select now()")).scalar_one()
     schedule = compute_schedule(start, duration_seconds, cutoff)
+    window = BETTING_WINDOW_SECONDS.get(duration_seconds, 7200)
+    schedule = Schedule(schedule.opens_at, schedule.opens_at + timedelta(seconds=window), schedule.closes_at)
 
     asset_id = db.execute(
         text("select id from assets where symbol = :s and is_prediction_asset and is_active"),
@@ -368,7 +370,7 @@ def create_ladder(
             created.append(create_market(
                 db, actor_id=actor_id, symbol=symbol, duration_seconds=duration,
                 target_price=target, reason=reason,
-                payout_bps=bps if bps is not None else DEFAULT_PAYOUT_BPS.get(duration, 18000),
+                payout_bps=None,          # auto odds from distance to current price (odds.py)
             ))
     return {"base_price": base, "created": created, "skipped": skipped}
 

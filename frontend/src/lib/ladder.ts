@@ -40,3 +40,10 @@ export function distancePct(target: string, last: string | null): string | null 
   const pct = ((t - l) / l) * 100
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`
 }
+/** Hide strikes too far from the live price (default ±15%). Falls back to all if none are near. */
+export function nearbyStrikes(strikes: Market[], last: string | null, maxPct = 15): Market[] {
+  const ref = Number(last)
+  if (!Number.isFinite(ref) || ref <= 0) return strikes
+  const kept = strikes.filter((m) => (Math.abs(Number(m.target_price) - ref) / ref) * 100 <= maxPct)
+  return kept.length > 0 ? kept : strikes
+}
