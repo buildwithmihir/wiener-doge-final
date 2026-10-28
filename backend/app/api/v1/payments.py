@@ -4,10 +4,13 @@ import uuid
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Header, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+
+from app.services.admin_alerts import notify_admin_channel
+from app.services.ledger import format_demo, parse_demo
 
 from app.api.serialize import iso, money
 from app.core.errors import AppError
@@ -53,15 +56,28 @@ class WithdrawIn(BaseModel):
 @router.post("/withdrawals", status_code=201)
 @limiter.limit(WRITE_LIMIT)
 def request_withdrawal(request: Request, body: WithdrawIn, user: CurrentUserDep, db: Db,
+                       background: BackgroundTasks,
                        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key", max_length=120)] = None):
     if not idempotency_key:
         raise AppError("invalid_key", "Idempotency-Key header is required.", 422)
+    already = db.execute(
+        text("select 1 from withdrawals where user_id = :u and idempotency_key = :k"),
+        {"u": user.id, "k": idempotency_key},
+    ).first() is not None
     rpc = service.open_rpc()
     try:
         w = service.create_withdrawal(db, rpc, user_id=user.id, asset=body.asset,
                                       usd_units_=parse_demo(body.amount), address=body.address, key=idempotency_key)
     finally:
         rpc.close()
+    if not already:   # a retry of the same request must not alert twice
+        background.add_task(notify_admin_channel, (
+            "New withdrawal request\n"
+            f"${format_demo(int(w['amount']))} as {w['asset']}\n"
+            f"User: {user.display_name} (tg {user.telegram_id})\n"
+            f"Address: {w['destination_ref']}\n\n"
+            "Open the app: Admin > Withdrawals to approve or reject."
+        ))
     return _out(w)
 
 

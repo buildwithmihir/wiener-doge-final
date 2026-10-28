@@ -22,17 +22,16 @@ DEMO_NOTE = (
 WELCOME = (
     "Welcome to WienerDoge!\n\n"
     "Pick a market for SOL or WIENER and predict if the price will close ABOVE or BELOW the target. "
-    "Price at close >= target means ABOVE wins; below the target means BELOW wins.\n\n"
-    + DEMO_NOTE
+    "Price at close >= target means ABOVE wins; below the target means BELOW wins."
 )
 HELP = (
     "How it works\n"
     "1. Open the app and pick a market (24h, 48h, 7d or 30d).\n"
-    "2. Choose ABOVE or BELOW and a DEMO stake.\n"
-    "3. When the market closes it is settled from a fresh price snapshot. A win pays the simulated "
-    "multiplier shown on the market; a loss forfeits the stake. If no reliable price is available the "
-    "market is voided and every stake is refunded.\n\n"
-    "Commands: /start /balance /markets /help\n\n" + DEMO_NOTE
+    "2. Choose ABOVE or BELOW and your stake.\n"
+    "3. When the market closes it is settled from a fresh price snapshot. A win pays the multiplier "
+    "shown on the market; a loss forfeits the stake. If no reliable price is available the market is "
+    "voided and every stake is refunded.\n\n"
+    "Commands: /start /balance /markets /help"
 )
 UNKNOWN = "I did not understand that. Send /help to see what I can do."
 
@@ -96,8 +95,8 @@ def handle_update(db: Session, update: Any, mini_app_url: str = "") -> dict[str,
         wallet = get_wallet(db, user["id"])
         return _reply(
             chat_id,
-            f"Available: {format_demo(wallet.available)} DEMO\nIn open predictions: {format_demo(wallet.reserved)} DEMO\n"
-            f"Total: {format_demo(wallet.total)} DEMO\n\n{DEMO_NOTE}",
+            f"Available: ${format_demo(wallet.available)}\nIn open predictions: ${format_demo(wallet.reserved)}\n"
+            f"Total: ${format_demo(wallet.total)}",
             markup,
         )
     if command == "markets":

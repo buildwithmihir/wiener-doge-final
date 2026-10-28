@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     telegram_initdata_max_age_seconds: int = Field(default=3600, ge=30, le=86400)
     mini_app_url: str = ""
     admin_telegram_ids: str = ""
-
+    admin_channel_id: str = ""   # e.g. -1001234567890
     # web
     cors_origins: str = "http://localhost:5173"
 
