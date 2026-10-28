@@ -94,7 +94,7 @@ export default function LeaderboardPage() {
 
   return (
     <>
-      <PageTitle icon={Trophy} title="Leaderboard" subtitle="Demo-credit prediction rankings. Names are first names or aliases only." />
+      <PageTitle icon={Trophy} title="Leaderboard" subtitle="Prediction rankings. Names are first names or aliases only." />
       <div className="mb-2 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Ranking metric">
         {METRICS.map((m) => (
           <button key={m.key} type="button" role="tab" aria-selected={metric === m.key} className={chipClass(metric === m.key)} onClick={() => setMetric(m.key)}>

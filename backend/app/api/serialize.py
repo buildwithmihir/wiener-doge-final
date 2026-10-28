@@ -55,7 +55,7 @@ def market_out(m: dict[str, Any]) -> dict[str, Any]:
         "price_updated_at": iso(m["price_updated_at"]), "feed_ok": bool(m["feed_ok"]),
         "result": m["settlement_result"], "settle_price": price(m["settle_price"]),
         "settled_at": iso(m["settled_at"]),
-        "rule": "Price at close >= target: ABOVE wins. Below target: BELOW wins. Demo credits only.",
+        "rule": "Price at close >= target: ABOVE wins. Below target: BELOW wins.",
         "odds_above": f"{m['payout_above_bps'] / 10000:.2f}",
         "odds_below": f"{m['payout_below_bps'] / 10000:.2f}",
     }

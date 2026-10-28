@@ -226,7 +226,7 @@ export default function WalletPage() {
       <PageTitle
         icon={WalletIcon}
         title="Wallet"
-        subtitle={live ? 'Your balance in $. Deposit or withdraw SOL or WIENER.' : 'Demo credits only. No cash value, not redeemable.'}
+        subtitle="Your balance in $. Deposit or withdraw SOL or WIENER."
       />
       {wallet.isPending && <Spinner />}
       {wallet.isError && <ErrorState message="Could not load your wallet." onRetry={() => void wallet.refetch()} />}
@@ -235,7 +235,7 @@ export default function WalletPage() {
           <div className="glass p-5">
             <div className="flex items-center justify-between">
               <p className="text-sm text-slate-400">Available</p>
-              {!live && <Badge tone="demo">DEMO</Badge>}
+              
             </div>
             <p className="num mt-1 text-4xl font-bold text-white">{usd(wallet.data.available)}</p>
           </div>
@@ -263,7 +263,7 @@ export default function WalletPage() {
               <ArrowUp className="h-4 w-4" aria-hidden /> Withdraw
             </button>
           </div>
-          {!live && <p className="text-center text-xs text-slate-500">Deposits and withdrawals are disabled in demo mode.</p>}
+          {!live && <p className="text-center text-xs text-slate-500">Deposits and withdrawals are temporarily unavailable.</p>}
 
           {live && items.length > 0 && (
             <>

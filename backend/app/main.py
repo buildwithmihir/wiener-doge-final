@@ -27,7 +27,7 @@ def create_app() -> FastAPI:
     logging.basicConfig(level=settings.log_level)
     quiet_http_loggers()
     app = FastAPI(
-        title=f"{settings.app_name} API (demo credits only)",
+        title=f"{settings.app_name} API",
         lifespan=lifespan,
         docs_url=None if settings.is_production else "/docs",
         redoc_url=None,

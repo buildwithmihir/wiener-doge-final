@@ -32,12 +32,12 @@ def health_db():
 
 @router.get("/config")
 def public_config(db: Annotated[Session, Depends(get_db)]):
-    """What the app needs to show honest labels. Payments are off in this demo."""
+    """What the app needs to show honest labels. """
     payments = db.execute(text("select wd_setting_bool('payments.enabled', false)")).scalar_one()
     return {
         "demo_mode": True,
         "payments_enabled": bool(payments),
-        "currency": "DEMO credits (no cash value, not redeemable)",
+        "currency": "USD",
         "settlement_rule": "Price at close >= target: ABOVE wins. Below target: BELOW wins.",
         "durations_seconds": [86400, 172800, 604800, 2592000],
     }

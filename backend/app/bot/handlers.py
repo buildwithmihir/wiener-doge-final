@@ -16,9 +16,6 @@ from app.services.ledger import format_demo, get_wallet
 from app.services.markets import list_markets
 from app.services.users import find_user_by_telegram_id
 
-DEMO_NOTE = (
-    "Everything here uses DEMO credits only: no cash value, not redeemable, no deposits or withdrawals."
-)
 WELCOME = (
     "Welcome to WienerDoge!\n\n"
     "Pick a market for SOL or WIENER and predict if the price will close ABOVE or BELOW the target. "
@@ -89,7 +86,7 @@ def handle_update(db: Session, update: Any, mini_app_url: str = "") -> dict[str,
     if command == "balance":
         user = find_user_by_telegram_id(db, sender["id"])
         if user is None:
-            return _reply(chat_id, "Open the app once to create your account and get your starting DEMO credits.", markup)
+            return _reply(chat_id, "Open the app once to create your account.", markup)
         if user["status"] != "active":
             return _reply(chat_id, "This account is not active.")
         wallet = get_wallet(db, user["id"])

@@ -64,7 +64,7 @@ export function StakeSheet({
   if (units === null || units === 0n) problem = 'Enter an amount, for example 10.'
   else if (units < min) problem = `Minimum stake is ${usd(market.min_stake)}.`
   else if (units > max) problem = `Maximum stake is ${usd(market.max_stake)}.`
-  else if (available !== null && units > available) problem = 'Not enough demo credits.'
+  else if (available !== null && units > available) problem = 'Not enough balance.'
 
   const win = units !== null && problem === null ? payoutUnits(units, market.payout_multiplier) : null
   const isAbove = direction === 'above'
@@ -97,7 +97,7 @@ export function StakeSheet({
             <CheckCircle2 className="mx-auto h-12 w-12 animate-pop text-up" />
             <p className="mt-2 text-lg font-semibold">Prediction placed</p>
             <p className="mt-1 text-sm text-slate-400">
-              {usd(placed.stake)} on {placed.direction.toUpperCase()} · simulated win {usd(placed.potential_payout)}
+              {usd(placed.stake)} on {placed.direction.toUpperCase()} · potential win {usd(placed.potential_payout)}
             </p>
             <Button type="button" className="mt-5 w-full" onClick={onClose}>
               Done
@@ -106,7 +106,7 @@ export function StakeSheet({
         ) : (
           <>
             <label htmlFor="stake" className="text-xs font-medium uppercase tracking-wide text-slate-400">
-              Stake (DEMO credits)
+              Stake ($)
             </label>
             <Input
               id="stake"
@@ -141,7 +141,7 @@ export function StakeSheet({
               <span className="num">{wallet.data ? usd(wallet.data.available) : '…'}</span>
             </div>
             <div className="mt-1 flex items-center justify-between text-sm">
-              <span className="text-slate-400">Simulated win ({market.payout_multiplier}x)</span>
+              <span className="text-slate-400">Potential win ({market.payout_multiplier}x)</span>
               <span className="num font-semibold text-up">{win !== null ? usd(unitsToDemo(win)) : '—'}</span>
             </div>
 
@@ -154,9 +154,6 @@ export function StakeSheet({
             <Button type="button" size="lg" className="mt-4 w-full" disabled={problem !== null || place.isPending} onClick={() => place.mutate()}>
               {place.isPending ? 'Placing…' : `Place ${isAbove ? 'Above' : 'Below'} prediction`}
             </Button>
-            <p className="mt-3 text-center text-[11px] text-slate-500">
-              Demo credits only. No cash value, not redeemable. The payout is simulated.
-            </p>
           </>
         )}
       </SheetContent>

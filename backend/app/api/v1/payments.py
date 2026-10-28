@@ -18,7 +18,6 @@ from app.core.rate_limit import ADMIN_LIMIT, WRITE_LIMIT, limiter
 from app.database import get_db
 from app.deps import AdminUser, CurrentUserDep
 from app.payments import service
-from app.services.ledger import parse_demo
 
 router = APIRouter(tags=["payments"])
 Db = Annotated[Session, Depends(get_db)]

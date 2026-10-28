@@ -151,7 +151,7 @@ function NotificationSettings() {
           />
         </label>
       ))}
-      <p className="text-xs text-slate-500">Sent by the bot. Messages only mention demo credits.</p>
+      <p className="text-xs text-slate-500">Sent by the bot.</p>
       {save.isError && (
         <p role="alert" className="text-xs text-down">
           Could not save.
@@ -169,7 +169,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <PageTitle icon={UserIcon} title="Profile" subtitle="Demo account. No real money, no cash value." />
+      <PageTitle icon={UserIcon} title="Profile" subtitle="Your account" />
       {profile.isPending && <Spinner />}
       {profile.isError && <ErrorState message="Could not load your profile." onRetry={() => void profile.refetch()} />}
       {profile.data && (
@@ -185,7 +185,7 @@ export default function ProfilePage() {
             </div>
             {wallet.data && (
               <Link to="/wallet" className="mt-4 flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 text-sm">
-                <span className="text-slate-400">Balance (demo)</span>
+                <span className="text-slate-400">Balance</span>
                 <span className="num font-semibold text-white">{usd(wallet.data.available)}</span>
               </Link>
             )}
@@ -200,7 +200,7 @@ export default function ProfilePage() {
           <div className="glass-flat p-4">
             <p className="text-sm font-semibold text-white">Invite friends</p>
             <p className="mt-1 text-xs text-slate-400">
-              You get {usd(profile.data.referral.reward_per_referral)} demo credits when a friend joins with your code and places a prediction.
+              You get {usd(profile.data.referral.reward_per_referral)} as a bonus when a friend joins with your code and places a prediction.
             </p>
             <div className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-neon-blue/40 bg-ink-900 px-3 py-2">
               <span className="num text-lg font-bold tracking-widest text-white">{profile.data.referral.code}</span>

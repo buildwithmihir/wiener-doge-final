@@ -31,7 +31,7 @@ log = logging.getLogger("wienerdoge.notifications")
 
 MAX_ATTEMPTS = 3
 RECENT_HOURS = 24            # never backfill older events (avoids a flood after first deploy)
-FOOTER = "\n\nDemo credits only. No cash value."
+FOOTER = ""
 PREFERENCE_COLUMNS = ("market_results", "market_closing", "referrals", "vip")
 _TYPE_TO_PREF = {"market_result": "market_results", "referral_reward": "referrals", "vip_unlock": "vip"}
 
@@ -49,10 +49,10 @@ Sender = Callable[[int, str], SendResult]
 def result_text(symbol: str, direction: str, target: Any, status: str, stake: int, payout: int) -> str:
     call = f"{symbol} {direction.upper()} {price(target)}"
     if status == "won":
-        return f"You won! Your {call} prediction paid {format_demo(payout)} demo credits (stake {format_demo(stake)})." + FOOTER
+        return f"You won! Your {call} prediction paid ${format_demo(payout)} (stake ${format_demo(stake)})." + FOOTER
     if status == "lost":
-        return f"Your {call} prediction did not win. Stake lost: {format_demo(stake)} demo credits." + FOOTER
-    return f"Your {call} market was voided. Your stake of {format_demo(stake)} demo credits was refunded." + FOOTER
+        return f"Your {call} prediction did not win. Stake lost: ${format_demo(stake)}." + FOOTER
+    return f"Your {call} market was voided. Your stake of ${format_demo(stake)} was refunded." + FOOTER
 
 
 # ---- step 1: enqueue -----------------------------------------------------------------------
@@ -115,7 +115,7 @@ def enqueue_rewards(db: Session) -> int:
         {"h": RECENT_HOURS},
     ).mappings().all()
     made += _enqueue(db, [{"user_id": r["user_id"], "key": str(r["id"]),
-                           "body": f"A friend joined with your code and played. You earned {format_demo(int(r['reward_amount']))} demo credits." + FOOTER}
+                           "body": f"A friend joined with your code and played. You earned ${format_demo(int(r['reward_amount']))}." + FOOTER}
                           for r in refs], "referral_reward", "Referral reward", "ref")
     vips = db.execute(
         text(
@@ -126,7 +126,7 @@ def enqueue_rewards(db: Session) -> int:
         {"h": RECENT_HOURS},
     ).mappings().all()
     made += _enqueue(db, [{"user_id": r["user_id"], "key": str(r["id"]),
-                           "body": f"You reached {r['name']} VIP! Bonus: {format_demo(int(r['reward']))} demo credits." + FOOTER}
+                           "body": f"You reached {r['name']} VIP! Bonus: ${format_demo(int(r['reward']))}." + FOOTER}
                           for r in vips], "vip_unlock", "VIP unlocked", "vip")
     return made
 

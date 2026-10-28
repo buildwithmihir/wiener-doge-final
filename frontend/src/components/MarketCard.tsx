@@ -179,7 +179,7 @@ export function MarketCard({
           {direction ? `Continue with ${direction === 'above' ? 'Above' : 'Below'} ${price(market.target_price)}` : 'Choose Above or Below'}
         </Button>
         <p className="mt-3 text-center text-[11px] text-muted-foreground">
-          Demo credits only · no cash value · settled from the price at close
+          Settled from the price at close
         </p>
       </Card>
 

@@ -60,7 +60,7 @@ function UserCard({ user, onChanged }: { user: AdminUserInfo; onChanged: () => v
       </div>
       <p className="text-sm text-slate-300">
         Available <span className="num font-semibold text-white">{usd(user.wallet.available)}</span> · total{' '}
-        <span className="num">{usd(user.wallet.total)}</span> (demo credits)
+        <span className="num">{usd(user.wallet.total)}</span>
       </p>
       <input className={input} value={reason} maxLength={500} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required, audited)" aria-label="Reason" />
       <div className="flex gap-2">

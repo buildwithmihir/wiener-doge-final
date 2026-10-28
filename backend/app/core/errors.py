@@ -55,7 +55,7 @@ class Conflict(AppError):
 
 # Keys are the exact error names raised by supabase/migrations/0001_init_schema.sql
 DB_MESSAGE_MAP: dict[str, tuple[int, str]] = {
-    "insufficient_balance": (400, "Not enough demo credits."),
+    "insufficient_balance": (400, "Not enough balance."),
     "stake_out_of_range": (400, "Stake is outside the allowed range for this market."),
     "market_not_found": (404, "Market not found."),
     "user_not_found": (404, "User not found."),
@@ -79,7 +79,7 @@ DB_MESSAGE_MAP: dict[str, tuple[int, str]] = {
     "reason_required": (400, "A reason is required."),
     "actor_required": (400, "An acting admin is required."),
     "amount_zero": (400, "Amount cannot be zero."),
-    "payments_disabled_demo_only": (403, "Deposits and withdrawals are disabled (demo mode)."),
+    "payments_disabled_demo_only": (403, "Deposits and withdrawals are currently unavailable."),
     "balance_is_ledger_managed": (403, "Balances can only change through the ledger."),
     "ledger_is_append_only": (403, "Ledger records cannot be changed."),
     "audit_log_is_append_only": (403, "Audit records cannot be changed."),

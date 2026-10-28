@@ -57,9 +57,9 @@ def parse_demo(value: Any) -> int:
 
 
 _EXPLANATIONS = {
-    "signup_grant": "Welcome demo credits",
+    "signup_grant": "Welcome bonus",
     "stake_reserve": "Stake reserved for a prediction",
-    "win_payout": "Prediction won: simulated winnings",
+    "win_payout": "Prediction won",
     "loss_settle": "Prediction lost: stake forfeited",
     "refund": "Stake refunded",
     "admin_adjustment": "Balance adjustment by admin",

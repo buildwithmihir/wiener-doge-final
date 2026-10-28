@@ -20,7 +20,7 @@ SECRET_RE = re.compile(r"^[A-Za-z0-9_-]{16,256}$")
 COMMANDS = [
     {"command": "start", "description": "Open WienerDoge"},
     {"command": "markets", "description": "Show open markets"},
-    {"command": "balance", "description": "Show your DEMO balance"},
+    {"command": "balance", "description": "Show your balance"},
     {"command": "help", "description": "How it works"},
 ]
 

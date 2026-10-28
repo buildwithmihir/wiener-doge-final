@@ -86,7 +86,7 @@ function TierRow({ t, isNext, last }: { t: VipTier; isNext: boolean; last: boole
 
         <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-300">
           <Gift className="h-4 w-4 text-gold" />
-          Bonus <span className="num font-bold text-white">{usd(t.reward)}</span> demo credits
+          Bonus <span className="num font-bold text-white">{usd(t.reward)}</span>
         </p>
 
         {t.benefits.length > 0 && (
@@ -112,7 +112,7 @@ export default function VipPage() {
 
   return (
     <>
-      <PageTitle icon={Star} title="VIP Club" subtitle="Stake demo credits to level up. Rewards are demo credits too." />
+      <PageTitle icon={Star} title="VIP Club" subtitle="Stake to level up and earn bonuses." />
 
       {vip.isPending && <Spinner />}
 
@@ -178,7 +178,6 @@ export default function VipPage() {
             ))}
           </ul>
 
-          <p className="px-1 text-center text-xs text-slate-500">Demo credits only. No cash value, not redeemable.</p>
         </div>
       )}
     </>

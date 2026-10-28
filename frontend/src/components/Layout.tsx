@@ -34,7 +34,7 @@ export function Layout() {
           >
             <span className="text-right leading-tight">
               <span className="num block text-sm font-bold text-white">{wallet.data ? usd(wallet.data.available) : '—'}</span>
-              <span className="block text-[9px] font-semibold uppercase tracking-wider text-gold">DEMO credits</span>
+              <span className="block text-[9px] font-semibold uppercase tracking-wider text-gold">Balance</span>
             </span>
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent">
               <WalletIcon className="h-4 w-4 text-white" />

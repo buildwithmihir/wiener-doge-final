@@ -46,7 +46,7 @@ function PredictionRow({ p }: { p: Prediction }) {
           <p className="num font-semibold">{usd(p.stake)}</p>
         </div>
         <div>
-          <p className="text-xs text-slate-500">{p.status === 'open' ? 'Simulated win' : 'Payout'}</p>
+          <p className="text-xs text-slate-500">{p.status === 'open' ? 'Potential win' : 'Payout'}</p>
           <p className="num font-semibold">{usd(p.status === 'open' ? p.potential_payout : p.payout)}</p>
         </div>
         <div>
@@ -77,7 +77,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <PageTitle icon={HistoryIcon} title="History" subtitle="Your predictions. Demo credits only." />
+      <PageTitle icon={HistoryIcon} title="History" subtitle="Your predictions." />
 
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter predictions">
         {FILTERS.map((f) => (
