@@ -1,6 +1,6 @@
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { useMemo, useState } from 'react'
-import { ArrowDown, ArrowUp, History as HistoryIcon } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckCircle2, History as HistoryIcon, Percent, Radio, RotateCcw, TrendingUp, XCircle, type LucideIcon } from 'lucide-react'
 import { api } from '../lib/api'
 import { dateTime, durationLabel, price, usd } from '../lib/format'
 import { FILTERS, summarize, type HistoryFilter } from '../lib/history'
@@ -22,36 +22,51 @@ const STATUS_LABEL: Record<PredictionStatus, string> = {
   refunded: 'Refunded',
 }
 
+const STATUS_ICON: Record<PredictionStatus, { Icon: LucideIcon; cls: string; bar: string }> = {
+  open: { Icon: Radio, cls: 'bg-sky-400/15 text-sky-300', bar: 'border-l-sky-400' },
+  won: { Icon: CheckCircle2, cls: 'bg-emerald-400/15 text-emerald-300', bar: 'border-l-emerald-400' },
+  lost: { Icon: XCircle, cls: 'bg-rose-400/15 text-rose-300', bar: 'border-l-rose-400' },
+  refunded: { Icon: RotateCcw, cls: 'bg-amber-400/15 text-amber-300', bar: 'border-l-amber-400' },
+}
+
 function PredictionRow({ p }: { p: Prediction }) {
   const above = p.direction === 'above'
   const tone = p.status === 'won' ? 'up' : p.status === 'lost' ? 'down' : 'neutral'
-  const Icon = above ? ArrowUp : ArrowDown
+  const Dir = above ? ArrowUp : ArrowDown
+  const st = STATUS_ICON[p.status]
+  const StatusIcon = st.Icon
   return (
-    <li className="glass-flat p-4">
+    <li className={`glass-flat border-l-4 p-4 ${st.bar}`}>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Icon className={`h-4 w-4 ${above ? 'text-up' : 'text-down'}`} aria-hidden />
-          <p className="font-semibold text-white">
-            {p.symbol} {above ? 'ABOVE' : 'BELOW'} {price(p.target_price)}
-          </p>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${st.cls}`}>
+            <StatusIcon className="h-5 w-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 truncate font-semibold text-white">
+              {p.symbol}
+              <Dir className={`h-4 w-4 ${above ? 'text-up' : 'text-down'}`} aria-hidden />
+              {above ? 'ABOVE' : 'BELOW'} {price(p.target_price)}
+            </p>
+            <p className="text-xs text-slate-400">
+              {durationLabel(p.duration_seconds)} market · {dateTime(p.created_at)}
+            </p>
+          </div>
         </div>
         <Badge tone={tone}>{STATUS_LABEL[p.status]}</Badge>
       </div>
-      <p className="mt-1 text-xs text-slate-400">
-        {durationLabel(p.duration_seconds)} market · placed {dateTime(p.created_at)}
-      </p>
       <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-        <div>
-          <p className="text-xs text-slate-500">Stake</p>
+        <div className="rounded-xl bg-black/25 px-3 py-2">
+          <p className="text-[11px] text-slate-500">Stake</p>
           <p className="num font-semibold">{usd(p.stake)}</p>
         </div>
-        <div>
-          <p className="text-xs text-slate-500">{p.status === 'open' ? 'Potential win' : 'Payout'}</p>
-          <p className="num font-semibold">{usd(p.status === 'open' ? p.potential_payout : p.payout)}</p>
+        <div className="rounded-xl bg-black/25 px-3 py-2">
+          <p className="text-[11px] text-slate-500">{p.status === 'open' ? 'Potential win' : 'Payout'}</p>
+          <p className={`num font-semibold ${p.status === 'won' ? 'text-up' : ''}`}>{usd(p.status === 'open' ? p.potential_payout : p.payout)}</p>
         </div>
-        <div>
-          <p className="text-xs text-slate-500">{p.settled_at ? 'Final price' : 'Closes'}</p>
-          <p className="num font-semibold">{p.settled_at ? price(p.settle_price) : dateTime(p.closes_at)}</p>
+        <div className="rounded-xl bg-black/25 px-3 py-2">
+          <p className="text-[11px] text-slate-500">{p.settled_at ? 'Final price' : 'Closes'}</p>
+          <p className="num truncate font-semibold">{p.settled_at ? price(p.settle_price) : dateTime(p.closes_at)}</p>
         </div>
       </div>
     </li>
@@ -77,7 +92,7 @@ export default function HistoryPage() {
 
   return (
     <>
-      <PageTitle icon={HistoryIcon} title="History" subtitle="Your predictions." />
+      <PageTitle icon={HistoryIcon} tone="violet" title="History" subtitle="Your predictions." />
 
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter predictions">
         {FILTERS.map((f) => (
@@ -98,22 +113,25 @@ export default function HistoryPage() {
       {query.isError && <ErrorState message="Could not load your history." onRetry={() => void query.refetch()} />}
 
       {query.data && items.length === 0 && (
-        <EmptyState title="No predictions yet" text="Place a prediction on the Markets tab and it will show up here." />
+        <EmptyState icon={HistoryIcon} tone="violet" title="No predictions yet" text="Place a prediction on the Markets tab and it will show up here." />
       )}
 
       {items.length > 0 && (
         <>
-          <div className="glass-flat mb-3 grid grid-cols-3 gap-2 p-4 text-center">
-            <div>
-              <p className="text-xs text-slate-500">Settled</p>
+          <div className="mb-3 grid grid-cols-3 gap-2">
+            <div className="glass-flat p-3 text-center">
+              <CheckCircle2 className="mx-auto h-4 w-4 text-sky-400" aria-hidden />
+              <p className="mt-1 text-[11px] text-slate-500">Settled</p>
               <p className="num text-lg font-semibold">{summary.settled}</p>
             </div>
-            <div>
-              <p className="text-xs text-slate-500">Win rate</p>
+            <div className="glass-flat p-3 text-center">
+              <Percent className="mx-auto h-4 w-4 text-violet-400" aria-hidden />
+              <p className="mt-1 text-[11px] text-slate-500">Win rate</p>
               <p className="num text-lg font-semibold">{summary.winRatePct === '—' ? '—' : `${summary.winRatePct}%`}</p>
             </div>
-            <div>
-              <p className="text-xs text-slate-500">Net (loaded)</p>
+            <div className="glass-flat p-3 text-center">
+              <TrendingUp className="mx-auto h-4 w-4 text-emerald-400" aria-hidden />
+              <p className="mt-1 text-[11px] text-slate-500">Net (loaded)</p>
               <p
                 className={`num text-lg font-semibold ${
                   summary.netDemo.startsWith('+') ? 'text-up' : summary.netDemo.startsWith('-') ? 'text-down' : ''

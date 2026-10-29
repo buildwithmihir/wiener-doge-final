@@ -1,23 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
-import { Crown, Trophy } from 'lucide-react'
+import { CalendarDays, Calendar, Coins, Crown, Infinity as InfinityIcon, Target, Trophy, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { api } from '../lib/api'
 import { usd } from '../lib/format'
 import type { LeaderboardMetric, LeaderboardPeriod, LeaderboardResponse, LeaderboardRow } from '../lib/types'
 import { EmptyState, ErrorState, PageTitle, Spinner } from '../components/ui'
 
-const METRICS: { key: LeaderboardMetric; label: string }[] = [
-  { key: 'accuracy', label: 'Accuracy' },
-  { key: 'wagered', label: 'Wagered' },
+const METRICS: { key: LeaderboardMetric; label: string; Icon: LucideIcon; color: string }[] = [
+  { key: 'accuracy', label: 'Accuracy', Icon: Target, color: 'text-emerald-400' },
+  { key: 'wagered', label: 'Wagered', Icon: Coins, color: 'text-amber-400' },
 ]
-const PERIODS: { key: LeaderboardPeriod; label: string }[] = [
-  { key: 'all', label: 'All time' },
-  { key: 'weekly', label: '7 days' },
-  { key: 'monthly', label: '30 days' },
+const PERIODS: { key: LeaderboardPeriod; label: string; Icon: LucideIcon; color: string }[] = [
+  { key: 'all', label: 'All time', Icon: InfinityIcon, color: 'text-violet-400' },
+  { key: 'weekly', label: '7 days', Icon: CalendarDays, color: 'text-sky-400' },
+  { key: 'monthly', label: '30 days', Icon: Calendar, color: 'text-pink-400' },
 ]
 
 function chipClass(active: boolean): string {
-  return `shrink-0 rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
+  return `flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-semibold transition ${
     active ? 'bg-neon-blue/20 text-neon-blue ring-1 ring-neon-blue/60' : 'bg-white/5 text-slate-300 hover:text-white'
   }`
 }
@@ -62,9 +62,11 @@ function Row({ r, metric }: { r: LeaderboardRow; metric: LeaderboardMetric }) {
   const main = metric === 'accuracy' ? (r.accuracy_pct === null ? '—' : `${r.accuracy_pct}%`) : usd(r.staked)
   const sub =
     metric === 'accuracy' ? `${r.wins}/${r.settled} won` : `${r.settled} settled · ${r.accuracy_pct ?? '—'}${r.accuracy_pct === null ? '' : '%'}`
+  const rankTone =
+    r.rank === 1 ? 'bg-amber-400/15 text-gold' : r.rank === 2 ? 'bg-slate-300/15 text-silver' : r.rank === 3 ? 'bg-orange-400/15 text-bronze' : 'bg-white/5 text-slate-300'
   return (
     <li className={`glass-flat flex items-center gap-3 p-3 ${r.is_me ? 'ring-1 ring-neon-blue/60' : ''}`}>
-      <span className={`num flex w-8 justify-center text-sm font-bold ${r.rank === 1 ? 'text-gold' : r.rank === 2 ? 'text-silver' : r.rank === 3 ? 'text-bronze' : 'text-slate-300'}`}>
+      <span className={`num flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${rankTone}`}>
         {r.rank <= 3 ? <Crown className="h-5 w-5" aria-label={`Rank ${r.rank}`} /> : `#${r.rank}`}
       </span>
       <div className="min-w-0 flex-1">
@@ -74,7 +76,7 @@ function Row({ r, metric }: { r: LeaderboardRow; metric: LeaderboardMetric }) {
         </p>
         <p className="text-xs text-slate-400">{sub}</p>
       </div>
-      <p className="num text-lg font-bold text-white">{main}</p>
+      <p className={`num text-lg font-bold ${metric === 'accuracy' ? 'text-emerald-300' : 'text-amber-300'}`}>{main}</p>
     </li>
   )
 }
@@ -94,18 +96,20 @@ export default function LeaderboardPage() {
 
   return (
     <>
-      <PageTitle icon={Trophy} title="Leaderboard" subtitle="Prediction rankings. Names are first names or aliases only." />
+      <PageTitle icon={Trophy} tone="gold" title="Leaderboard" subtitle="Prediction rankings. Names are first names or aliases only." />
       <div className="mb-2 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Ranking metric">
-        {METRICS.map((m) => (
-          <button key={m.key} type="button" role="tab" aria-selected={metric === m.key} className={chipClass(metric === m.key)} onClick={() => setMetric(m.key)}>
-            {m.label}
+        {METRICS.map(({ key, label, Icon, color }) => (
+          <button key={key} type="button" role="tab" aria-selected={metric === key} className={chipClass(metric === key)} onClick={() => setMetric(key)}>
+            <Icon className={`h-4 w-4 ${metric === key ? '' : color}`} aria-hidden />
+            {label}
           </button>
         ))}
       </div>
       <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Period">
-        {PERIODS.map((p) => (
-          <button key={p.key} type="button" role="tab" aria-selected={period === p.key} className={chipClass(period === p.key)} onClick={() => setPeriod(p.key)}>
-            {p.label}
+        {PERIODS.map(({ key, label, Icon, color }) => (
+          <button key={key} type="button" role="tab" aria-selected={period === key} className={chipClass(period === key)} onClick={() => setPeriod(key)}>
+            <Icon className={`h-4 w-4 ${period === key ? '' : color}`} aria-hidden />
+            {label}
           </button>
         ))}
       </div>
@@ -114,6 +118,8 @@ export default function LeaderboardPage() {
       {lb.isError && <ErrorState message="Could not load the leaderboard." onRetry={() => void lb.refetch()} />}
       {lb.data && lb.data.items.length === 0 && (
         <EmptyState
+          icon={Trophy}
+          tone="gold"
           title="No one ranked yet"
           text={`Players appear after ${lb.data.min_settled} settled prediction${lb.data.min_settled === 1 ? '' : 's'}.`}
         />
