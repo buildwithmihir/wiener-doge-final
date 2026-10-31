@@ -36,8 +36,14 @@ function WienerLogo({ size }: { size: number }) {
     />
   )
 }
+interface StyleDef {
+  ring: string
+  glow: string
+  fill?: boolean
+  glyph: (s: number) => ReactElement
+}
 
-const STYLES: Record<string, { ring: string; glow: string; fill?: boolean; glyph: (s: number) => ReactElement }> = {
+const STYLES: Record<string, StyleDef> = {
   SOL: {
     ring: 'ring-white/15',
     glow: 'shadow-[0_0_22px_rgba(153,69,255,0.35)]',
@@ -52,7 +58,7 @@ const STYLES: Record<string, { ring: string; glow: string; fill?: boolean; glyph
 }
 
 export function AssetIcon({ symbol, size = 48 }: { symbol: string; size?: number }) {
-  const style = STYLES[symbol] ?? {
+  const style: StyleDef = STYLES[symbol] ?? {
     ring: 'ring-white/15',
     glow: 'shadow-glow',
     glyph: (s: number) => <Dog style={{ width: s, height: s }} className="text-white" />,
