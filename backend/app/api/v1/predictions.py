@@ -1,20 +1,20 @@
 from __future__ import annotations
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
 
-from app.api.serialize import prediction_out
+from app.api.serialize import money, prediction_out, price
 from app.core.errors import AppError
 from app.core.rate_limit import PREDICTION_LIMIT, limiter
 from app.database import get_db
 from app.deps import CurrentUserDep
+from app.services import cashout as cashout_service
 from app.services.ledger import parse_demo
 from app.services.predictions import list_predictions, place_prediction
-
-import uuid
 
 router = APIRouter(tags=["predictions"])
 
@@ -25,6 +25,11 @@ class PredictionIn(BaseModel):
     direction: str = Field(min_length=1, max_length=8)
     stake: str = Field(min_length=1, max_length=24, description="DEMO amount as text, e.g. '25' or '12.5'")
     expected_target_price: str | None = Field(default=None, max_length=40)
+
+
+class CashoutIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    expected_amount: str | None = Field(default=None, max_length=24, description="The cashout value the user saw")
 
 
 @router.post("/predictions", status_code=201)
@@ -59,3 +64,35 @@ def read_predictions(
 ):
     rows = list_predictions(db, user.id, status=status, limit=limit, offset=offset)
     return {"items": [prediction_out(p) for p in rows]}
+
+
+@router.get("/predictions/quotes")
+def read_cashout_quotes(user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
+    """Live cashout value of every open prediction (winning bets are worth more, losing bets less)."""
+    items = []
+    for q in cashout_service.open_quotes(db, user.id):
+        items.append({
+            "prediction_id": str(q["prediction_id"]),
+            "available": q["available"],
+            "reason": q["reason"],
+            "message": cashout_service.REASONS.get(q["reason"]) if q["reason"] else None,
+            "amount": money(q["amount"]) if q["amount"] is not None else None,
+            "current_price": price(q["current_price"]),
+            "winning": q["winning"],
+            "seconds_left": q["seconds_left"],
+        })
+    return {"items": items}
+
+
+@router.post("/predictions/{prediction_id}/cashout")
+@limiter.limit(PREDICTION_LIMIT)
+def cashout_prediction(
+    request: Request,
+    prediction_id: uuid.UUID,
+    body: CashoutIn,
+    user: CurrentUserDep,
+    db: Annotated[Session, Depends(get_db)],
+):
+    expected = parse_demo(body.expected_amount) if body.expected_amount else None
+    done = cashout_service.cashout(db, user_id=user.id, prediction_id=prediction_id, expected_units=expected)
+    return prediction_out(done)

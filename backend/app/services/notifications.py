@@ -1,18 +1,24 @@
-"""Telegram notifications for market results, referral rewards and VIP unlocks (DEMO credits only).
+"""Notifications: in-app list (bell icon) + Telegram bot messages.
+
+What users get notified about:
+  * WON bets only (losses / refunds / cashouts are visible in History but never notified)
+  * deposits credited, withdrawals sent or rejected
+  * referral rewards and VIP unlocks
+  * raffles and other announcements (broadcast())
 
 Two steps, both run from the scheduler tick:
   1. enqueue_*  : turn recent events into `notifications` rows (idempotent: dedupe_key is unique,
                   so running it every minute never duplicates a message; honours the user's preferences)
   2. deliver_pending : send a few pending rows through Telegram's sendMessage, within a time budget
-                  (the scheduler gives the tick only ~30 s) and mark them sent / retry / failed.
+                  and mark them sent / retry / failed.
+The same rows are what the app's notification bell shows (list_for_user), whatever their Telegram status.
 
-Delivery is at-least-once: if the process dies right after Telegram accepted a message but before the
-database commit, that one message can be sent twice. Messages are plain text and contain only numbers,
-the asset symbol and fixed words, never user-supplied text. The bot token is never logged or returned:
-HTTP errors are reduced to their type name because httpx messages can contain the request URL.
+Delivery is at-least-once. Messages are plain text with numbers, the asset symbol and fixed words, never
+user-supplied text. The bot token is never logged or returned.
 """
 from __future__ import annotations
 
+import json
 import logging
 import time
 from enum import Enum
@@ -32,8 +38,15 @@ log = logging.getLogger("wienerdoge.notifications")
 MAX_ATTEMPTS = 3
 RECENT_HOURS = 24            # never backfill older events (avoids a flood after first deploy)
 FOOTER = ""
-PREFERENCE_COLUMNS = ("market_results", "market_closing", "referrals", "vip")
-_TYPE_TO_PREF = {"market_result": "market_results", "referral_reward": "referrals", "vip_unlock": "vip"}
+PREFERENCE_COLUMNS = ("market_results", "market_closing", "referrals", "vip", "payments", "raffles")
+_TYPE_TO_PREF = {
+    "market_result": "market_results",
+    "referral_reward": "referrals",
+    "vip_unlock": "vip",
+    "deposit": "payments",
+    "withdrawal": "payments",
+    "raffle": "raffles",
+}
 
 
 class SendResult(str, Enum):
@@ -72,8 +85,6 @@ def _wants(db: Session, user_id: Any, notif_type: str) -> bool:
 
 
 def _enqueue(db: Session, rows: list[dict[str, Any]], notif_type: str, title: str, key_prefix: str) -> int:
-    import json
-
     made = 0
     for r in rows:
         if not _wants(db, r["user_id"], notif_type):
@@ -85,13 +96,14 @@ def _enqueue(db: Session, rows: list[dict[str, Any]], notif_type: str, title: st
 
 
 def enqueue_results(db: Session) -> int:
+    """WON bets only."""
     rows = db.execute(
         text(
             """select p.id, p.user_id, a.symbol, p.direction, p.target_price_snapshot as target, p.status,
                       p.stake, p.payout_amount
                from predictions p join markets m on m.id = p.market_id join assets a on a.id = m.asset_id
                join users u on u.id = p.user_id
-               where p.status in ('won','lost','refunded') and p.settled_at > now() - make_interval(hours => :h)
+               where p.status = 'won' and p.settled_at > now() - make_interval(hours => :h)
                  and u.status = 'active'
                order by p.settled_at limit 200"""
         ),
@@ -100,7 +112,7 @@ def enqueue_results(db: Session) -> int:
     items = [{"user_id": r["user_id"], "key": str(r["id"]),
               "body": result_text(r["symbol"], r["direction"], r["target"], r["status"], int(r["stake"]), int(r["payout_amount"])),
               "payload": {"prediction_id": str(r["id"]), "status": r["status"]}} for r in rows]
-    return _enqueue(db, items, "market_result", "Market result", "pred")
+    return _enqueue(db, items, "market_result", "You won!", "pred")
 
 
 def enqueue_rewards(db: Session) -> int:
@@ -129,6 +141,50 @@ def enqueue_rewards(db: Session) -> int:
                            "body": f"You reached {r['name']} VIP! Bonus: ${format_demo(int(r['reward']))}." + FOOTER}
                           for r in vips], "vip_unlock", "VIP unlocked", "vip")
     return made
+
+
+def enqueue_payments(db: Session) -> int:
+    """Deposits that were credited and withdrawals that were sent or rejected."""
+    made = 0
+    deposits = db.execute(
+        text(
+            """select d.id, d.user_id, d.usd_value, a.symbol
+               from deposits d join assets a on a.id = d.asset_id join users u on u.id = d.user_id
+               where d.status = 'credited' and d.usd_value is not null and u.status = 'active'
+                 and d.created_at > now() - make_interval(hours => :h) limit 200"""
+        ),
+        {"h": RECENT_HOURS},
+    ).mappings().all()
+    made += _enqueue(db, [{"user_id": r["user_id"], "key": f"dep:{r['id']}",
+                           "body": f"Deposit received: ${format_demo(int(r['usd_value']))} ({r['symbol']}) was added to your balance." + FOOTER,
+                           "payload": {"deposit_id": str(r["id"])}} for r in deposits],
+                     "deposit", "Deposit received", "pay")
+    withdrawals = db.execute(
+        text(
+            """select w.id, w.user_id, w.status, w.amount, a.symbol
+               from withdrawals w join assets a on a.id = w.asset_id join users u on u.id = w.user_id
+               where w.status in ('sent','rejected') and u.status = 'active'
+                 and w.updated_at > now() - make_interval(hours => :h) limit 200"""
+        ),
+        {"h": RECENT_HOURS},
+    ).mappings().all()
+    made += _enqueue(db, [{
+        "user_id": r["user_id"], "key": f"wd:{r['id']}:{r['status']}",
+        "body": (f"Your withdrawal of ${format_demo(int(r['amount']))} ({r['symbol']}) was sent." if r["status"] == "sent"
+                 else f"Your withdrawal of ${format_demo(int(r['amount']))} was rejected and the amount returned to your balance.") + FOOTER,
+        "payload": {"withdrawal_id": str(r["id"]), "status": r["status"]}} for r in withdrawals],
+        "withdrawal", "Withdrawal update", "pay")
+    return made
+
+
+def broadcast(db: Session, notif_type: str, title: str, body: str, dedupe_key: str, limit: int = 5000) -> int:
+    """Announcement for every active user who has that type switched on (for example a new raffle).
+    Safe to call twice with the same dedupe_key."""
+    if notif_type not in _TYPE_TO_PREF:
+        raise AppError("invalid_type", "Unknown notification type.", 422)
+    ids = [r[0] for r in db.execute(text("select id from users where status = 'active' limit :n"), {"n": limit}).all()]
+    return _enqueue(db, [{"user_id": u, "key": f"{dedupe_key}:{u}", "body": body} for u in ids],
+                    notif_type, title, "bc")
 
 
 # ---- step 2: deliver -----------------------------------------------------------------------
@@ -192,7 +248,7 @@ def run_notifications(db: Session, send: Sender | None) -> dict[str, Any]:
     summary: dict[str, Any] = {"queued": 0}
     try:
         with db.begin_nested():
-            summary["queued"] = enqueue_results(db) + enqueue_rewards(db)
+            summary["queued"] = enqueue_results(db) + enqueue_rewards(db) + enqueue_payments(db)
     except Exception:  # noqa: BLE001
         log.exception("enqueueing notifications failed")
         summary["enqueue_error"] = True
@@ -206,12 +262,27 @@ def run_notifications(db: Session, send: Sender | None) -> dict[str, Any]:
     return summary
 
 
+# ---- in-app list (the bell) ----------------------------------------------------------------
+def list_for_user(db: Session, user_id: Any, limit: int = 30) -> dict[str, Any]:
+    limit = max(1, min(int(limit), 50))
+    rows = db.execute(
+        text("""select id, type, title, body, created_at, read_at from notifications
+                where user_id = :u order by created_at desc limit :n"""),
+        {"u": user_id, "n": limit},
+    ).mappings().all()
+    unread = db.execute(text("select count(*) from notifications where user_id = :u and read_at is null"),
+                        {"u": user_id}).scalar_one()
+    return {"items": [dict(r) for r in rows], "unread": int(unread)}
+
+
+def mark_all_read(db: Session, user_id: Any) -> None:
+    db.execute(text("update notifications set read_at = now() where user_id = :u and read_at is null"), {"u": user_id})
+
+
 # ---- preferences ---------------------------------------------------------------------------
 def get_preferences(db: Session, user_id: Any) -> dict[str, bool]:
-    row = db.execute(
-        text("select market_results, market_closing, referrals, vip from notification_preferences where user_id = :u"),
-        {"u": user_id},
-    ).mappings().first()
+    cols = ", ".join(PREFERENCE_COLUMNS)              # fixed whitelist
+    row = db.execute(text(f"select {cols} from notification_preferences where user_id = :u"), {"u": user_id}).mappings().first()
     return {c: (True if row is None else bool(row[c])) for c in PREFERENCE_COLUMNS}
 
 
@@ -220,12 +291,13 @@ def update_preferences(db: Session, user_id: Any, changes: dict[str, bool]) -> d
     if unknown:
         raise AppError("invalid_preference", "Unknown notification setting.", 422)
     current = get_preferences(db, user_id) | {k: bool(v) for k, v in changes.items()}
+    cols = ", ".join(PREFERENCE_COLUMNS)
+    marks = ", ".join(f":{c}" for c in PREFERENCE_COLUMNS)
+    sets = ", ".join(f"{c} = :{c}" for c in PREFERENCE_COLUMNS)
     db.execute(
-        text(
-            """insert into notification_preferences(user_id, market_results, market_closing, referrals, vip, updated_at)
-               values (:u, :a, :b, :c, :d, now())
-               on conflict (user_id) do update set market_results=:a, market_closing=:b, referrals=:c, vip=:d, updated_at=now()"""
-        ),
-        {"u": user_id, "a": current["market_results"], "b": current["market_closing"], "c": current["referrals"], "d": current["vip"]},
+        text(f"""insert into notification_preferences(user_id, {cols}, updated_at)
+                 values (:user_id, {marks}, now())
+                 on conflict (user_id) do update set {sets}, updated_at = now()"""),
+        {"user_id": user_id, **current},
     )
     return current

@@ -8,7 +8,8 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle } from '../components
 import { api, ApiError, newIdempotencyKey } from '../lib/api'
 import { dateTime, usd } from '../lib/format'
 import { parseDemoToUnits, unitsToDemo } from '../lib/money'
-import type { DepositInfo, PayAsset, PublicConfig, Wallet as WalletData, WithdrawalItem, WithdrawalStatus } from '../lib/types'
+import type { DepositInfo, PayAsset, PublicConfig, WagerStatus, Wallet as WalletData, WithdrawalItem, WithdrawalStatus } from '../lib/types'
+import { WagerCard } from '../components/WagerCard'
 
 const ASSETS: PayAsset[] = ['SOL', 'WIENER']
 
@@ -213,10 +214,12 @@ export default function WalletPage() {
     enabled: config.data?.payments_enabled === true,
     refetchInterval: 30_000,
   })
+  const wager = useQuery({ queryKey: ['wager'], queryFn: () => api<WagerStatus>('/wallet/wager') })
   const [sheet, setSheet] = useState<'deposit' | 'withdraw' | null>(null)
 
   const live = config.data?.payments_enabled === true
-  const items = withdrawals.data?.items ?? []
+  const wagerMet = wager.data?.met !== false
+    const items = withdrawals.data?.items ?? []
   const inFlight = items
     .filter((w) => w.status === 'pending' || w.status === 'approved' || w.status === 'sending')
     .reduce((sum, w) => sum + BigInt(w.amount.units), 0n)
@@ -249,7 +252,7 @@ export default function WalletPage() {
               <p className="num mt-1 text-xl font-semibold">{usd(wallet.data.total)}</p>
             </div>
           </div>
-          {inFlight > 0n && (
+          <WagerCard />\n          {inFlight > 0n && (
             <div className="glass-flat flex items-center justify-between p-3 text-sm">
               <span className="text-slate-400">Pending withdrawals</span>
               <span className="num font-semibold text-white">{usd(unitsToDemo(inFlight))}</span>
@@ -259,7 +262,7 @@ export default function WalletPage() {
             <button type="button" className="btn-primary" disabled={!live} onClick={() => setSheet('deposit')}>
               <ArrowDown className="h-4 w-4" aria-hidden /> Deposit
             </button>
-            <button type="button" className="btn-ghost" disabled={!live} onClick={() => setSheet('withdraw')}>
+            <button type="button" className="btn-ghost" disabled={!live || !wagerMet} onClick={() => setSheet('withdraw')}>
               <ArrowUp className="h-4 w-4" aria-hidden /> Withdraw
             </button>
           </div>

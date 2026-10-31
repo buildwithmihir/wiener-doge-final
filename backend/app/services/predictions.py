@@ -19,7 +19,7 @@ from app.services.growth import refresh_vip
 from app.services.markets import get_market
 
 DIRECTIONS = ("above", "below")
-STATUSES = ("open", "won", "lost", "refunded")
+STATUSES = ("open", "won", "lost", "refunded", "cashed_out")
 MAX_PAGE_SIZE = 100
 
 _SELECT = """

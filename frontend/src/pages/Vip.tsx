@@ -12,6 +12,8 @@ interface TierStyle {
   glow: string // hero glow colour
   text: string
   ring: string
+  bar: string // left accent bar (unlocked / next)
+  barLocked: string // same colour, dimmed (locked)
   Icon: LucideIcon
 }
 
@@ -21,6 +23,8 @@ const TIER: Record<string, TierStyle> = {
     glow: 'rgba(232,146,77,0.35)',
     text: 'text-bronze',
     ring: 'ring-[#e8924d]/40',
+    bar: 'border-l-[#e8924d]',
+    barLocked: 'border-l-[#e8924d]/40',
     Icon: Medal,
   },
   Silver: {
@@ -28,6 +32,8 @@ const TIER: Record<string, TierStyle> = {
     glow: 'rgba(199,204,217,0.30)',
     text: 'text-silver',
     ring: 'ring-[#c7ccd9]/40',
+    bar: 'border-l-[#c7ccd9]',
+    barLocked: 'border-l-[#c7ccd9]/40',
     Icon: Award,
   },
   Gold: {
@@ -35,6 +41,8 @@ const TIER: Record<string, TierStyle> = {
     glow: 'rgba(245,185,66,0.38)',
     text: 'text-gold',
     ring: 'ring-[#f5b942]/40',
+    bar: 'border-l-[#f5b942]',
+    barLocked: 'border-l-[#f5b942]/40',
     Icon: Crown,
   },
   Platinum: {
@@ -42,6 +50,8 @@ const TIER: Record<string, TierStyle> = {
     glow: 'rgba(34,211,238,0.38)',
     text: 'text-platinum',
     ring: 'ring-[#67e8f9]/40',
+    bar: 'border-l-[#67e8f9]',
+    barLocked: 'border-l-[#67e8f9]/40',
     Icon: Gem,
   },
 }
@@ -55,12 +65,11 @@ function Emblem({ name, unlocked, size = 'lg' }: { name: string; unlocked: boole
   const box = size === 'xl' ? 'h-20 w-20 rounded-3xl' : 'h-16 w-16 rounded-2xl'
   const icon = size === 'xl' ? 'h-10 w-10' : 'h-8 w-8'
   return (
-    <span
-      className={`relative flex shrink-0 items-center justify-center bg-gradient-to-br ${s.grad} text-white ring-1 ring-white/25 ${box} ${
-        unlocked ? '' : 'opacity-40 grayscale'
-      }`}
-    >
+    <span className={`relative flex shrink-0 items-center justify-center bg-gradient-to-br ${s.grad} text-white ring-1 ring-white/25 ${box}`}>
       <Icon className={`${icon} drop-shadow`} strokeWidth={2.2} />
+      {/* Locked: the tier colour stays visible, with a black layer on top */}
+      {!unlocked && <span aria-hidden className="absolute inset-0 rounded-[inherit] bg-black/65" />}
+      {!unlocked && <Lock aria-hidden className="absolute h-4 w-4 text-white/80" />}
       {unlocked && <Check className="absolute -bottom-1.5 -right-1.5 h-5 w-5 rounded-full bg-up p-0.5 text-black ring-2 ring-black" />}
     </span>
   )
@@ -128,12 +137,12 @@ function TierCard({ t, total, isNext }: { t: VipTier; total: string; isNext: boo
   const s = styleOf(t.name)
   const pct = t.unlocked ? 100 : tierPct(total, t)
   return (
-    <li className={`glass-flat animate-fade-up p-4 ${isNext ? `ring-1 ${s.ring}` : ''}`}>
+    <li className={`glass-flat animate-fade-up border-l-4 p-4 ${t.unlocked ? s.bar : s.barLocked} ${isNext ? `ring-1 ${s.ring}` : ''}`}>
       <div className="flex items-center gap-4">
         <Emblem name={t.name} unlocked={t.unlocked} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-2">
-            <p className={`font-display text-lg font-bold ${t.unlocked ? s.text : 'text-slate-200'}`}>{t.name}</p>
+            <p className={`font-display text-lg font-bold ${s.text} ${t.unlocked ? '' : 'opacity-60'}`}>{t.name}</p>
             {t.unlocked ? (
               <span className="rounded-full bg-up/15 px-2.5 py-0.5 text-[11px] font-bold text-up">Unlocked</span>
             ) : isNext ? (

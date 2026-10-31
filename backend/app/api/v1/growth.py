@@ -106,12 +106,36 @@ def read_leaderboard(
             "items": [row(i) for i in lb["items"]], "me": row(lb["me"])}
 
 
+# ---- notifications ----------------------------------------------------------------------------
 class NotificationPrefsIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     market_results: bool | None = None
     market_closing: bool | None = None
     referrals: bool | None = None
     vip: bool | None = None
+    payments: bool | None = None
+    raffles: bool | None = None
+
+
+@router.get("/notifications")
+def read_notifications(
+    user: CurrentUserDep,
+    db: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=50)] = 30,
+):
+    """The in-app bell: newest first, plus how many are unread."""
+    data = notifications.list_for_user(db, user.id, limit)
+    return {
+        "unread": data["unread"],
+        "items": [{"id": str(n["id"]), "type": n["type"], "title": n["title"], "body": n["body"],
+                   "created_at": iso(n["created_at"]), "read": n["read_at"] is not None} for n in data["items"]],
+    }
+
+
+@router.post("/notifications/read")
+def read_all_notifications(user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
+    notifications.mark_all_read(db, user.id)
+    return {"ok": True}
 
 
 @router.get("/notifications/preferences")

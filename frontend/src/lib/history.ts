@@ -1,13 +1,14 @@
 import type { Prediction } from './types'
 import { unitsToDemo } from './money'
 
-export type HistoryFilter = 'all' | 'open' | 'won' | 'lost' | 'refunded'
+export type HistoryFilter = 'all' | 'open' | 'won' | 'lost' | 'refunded' | 'cashed_out'
 
 export const FILTERS: { key: HistoryFilter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'open', label: 'Live bets' },
   { key: 'won', label: 'Won' },
   { key: 'lost', label: 'Lost' },
+  { key: 'cashed_out', label: 'Cashed out' },
   { key: 'refunded', label: 'Refunded' },
 ]
 
@@ -18,7 +19,10 @@ export interface Summary {
   netDemo: string // signed, e.g. "+12.5" / "-3"
 }
 
-/** Net result of finished predictions: won -> payout - stake, lost -> -stake, refunded -> 0. BigInt only. */
+/**
+ * Net result of finished predictions: won -> payout - stake, lost -> -stake,
+ * cashed out -> payout - stake (counts for profit, NOT for "settled" / win rate), refunded -> 0. BigInt only.
+ */
 export function summarize(items: Prediction[]): Summary {
   let wins = 0
   let losses = 0
@@ -31,6 +35,8 @@ export function summarize(items: Prediction[]): Summary {
     } else if (p.status === 'lost') {
       losses += 1
       net -= stake
+    } else if (p.status === 'cashed_out') {
+      net += BigInt(p.payout.units) - stake
     }
   }
   const settled = wins + losses

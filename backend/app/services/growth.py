@@ -24,7 +24,7 @@ _RANK_SCAN = 1000          # how deep we look to find "my rank" (fine for a demo
 def total_staked(db: Session, user_id: uuid.UUID) -> int:
     """Same definition the SQL update_vip() uses: open + won + lost stakes (refunds excluded)."""
     return int(db.execute(
-        text("select coalesce(sum(stake), 0) from predictions where user_id = :u and status in ('open','won','lost')"),
+        text("select coalesce(sum(stake), 0) from predictions where user_id = :u and status in ('won','lost')"),
         {"u": user_id},
     ).scalar_one())
 
@@ -96,7 +96,7 @@ def profile_stats(db: Session, user_id: uuid.UUID) -> dict[str, Any]:
         select count(*) filter (where status in ('won','lost')) as settled,
                count(*) filter (where status = 'won') as wins,
                count(*) filter (where status = 'open') as open_count,
-               coalesce(sum(stake) filter (where status in ('open','won','lost')), 0) as staked
+               coalesce(sum(stake) filter (where status in ('won','lost')), 0) as staked
         from predictions where user_id = :u
     """), {"u": user_id}).mappings().one()
     settled, wins = int(row["settled"]), int(row["wins"])

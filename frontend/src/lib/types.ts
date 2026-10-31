@@ -62,7 +62,7 @@ export interface Market {
 
 }
 
-export type PredictionStatus = 'open' | 'won' | 'lost' | 'refunded'
+export type PredictionStatus = 'open' | 'won' | 'lost' | 'refunded' | 'cashed_out'
 export interface AssetRow {
   symbol: string
   name: string
@@ -208,6 +208,8 @@ export interface NotificationPrefs {
   market_closing: boolean
   referrals: boolean
   vip: boolean
+  payments: boolean
+  raffles: boolean
 }
 export type PayAsset = 'SOL' | 'WIENER'
 
@@ -234,4 +236,38 @@ export interface WithdrawalItem {
 
 export interface AdminWithdrawal extends WithdrawalItem {
   user_id: string
+}
+
+
+export interface Quote {
+  prediction_id: string
+  available: boolean
+  reason: string | null
+  message: string | null
+  amount: Money | null
+  current_price: string | null
+  winning: boolean | null
+  seconds_left: number
+}
+
+export interface WagerStatus {
+  multiplier: number
+  required: Money
+  wagered: Money
+  remaining: Money
+  met: boolean
+}
+
+export interface NotificationItem {
+  id: string
+  type: string
+  title: string
+  body: string
+  created_at: string
+  read: boolean
+}
+
+export interface NotificationsResponse {
+  unread: number
+  items: NotificationItem[]
 }

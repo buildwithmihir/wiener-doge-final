@@ -97,6 +97,9 @@ DB_MESSAGE_MAP: dict[str, tuple[int, str]] = {
     "withdraw_bad_state": (409, "This withdrawal cannot be changed in its current state."),
     "withdrawal_not_found": (404, "Withdrawal not found."),
     "asset_not_supported": (400, "That asset is not supported."),
+    "cashout_unavailable": (409, "Cashout is not available for this bet right now."),
+    "prediction_not_found": (404, "Prediction not found."),
+    "wager_requirement_not_met": (400, "Wager 2x of your deposits and bonuses on settled bets before withdrawing."),
 }
 
 SQLSTATE_MAP: dict[str, tuple[int, str, str]] = {

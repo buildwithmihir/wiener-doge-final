@@ -36,6 +36,7 @@ from app.providers.health import (
     evaluate_feed,
 )
 from app.providers.registry import ProviderRegistry, build_default_registry, fetch_all, group_refs_by_provider
+from app.services.housekeeping import ensure_auto_markets, refresh_vip_recent
 from app.services.notifications import Sender, run_notifications
 from app.services.settlement import settle_due_markets
 
@@ -133,6 +134,12 @@ def tick(db: Session, registry: ProviderRegistry, now: datetime | None = None,
             summary["reopened"] += reopened
 
     summary["settlement"] = settle_due_markets(db)
+    try:
+        with db.begin_nested():
+            summary["auto_markets"] = ensure_auto_markets(db)
+            summary["vip_synced"] = refresh_vip_recent(db)
+    except Exception:   # noqa: BLE001 - housekeeping must never break settlement
+        log.exception("housekeeping failed")
     try:
         with db.begin_nested():
             summary["referrals_rewarded"] = int(db.execute(text("select process_referral_rewards()")).scalar_one())
