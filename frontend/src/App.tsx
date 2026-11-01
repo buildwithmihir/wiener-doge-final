@@ -12,6 +12,7 @@ import ProfilePage from './pages/Profile'
 import VipPage from './pages/Vip'
 import WalletPage from './pages/Wallet'
 import MarketDetailPage from './pages/MarketDetail'
+import ReferralsPage from './pages/Referrals'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false, staleTime: 15_000 } },
@@ -48,6 +49,7 @@ function Gate() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="admin" element={<AdminPage />} />
         <Route path="leaderboard" element={<LeaderboardPage />} />
+        <Route path="referrals" element={<ReferralsPage />} />
         <Route path="*" element={<ComingSoon title="Not found" />} />
       </Route>
     </Routes>

@@ -23,7 +23,22 @@ def _tier_out(t: dict | None) -> dict | None:
         "benefits": t["benefits"], "unlocked": t["unlocked"], "achieved_at": iso(t["achieved_at"]),
         "reward_paid": t["reward_paid"],
     }
+def _referral_out(ref: dict) -> dict:
+    need = max(1, int(ref["min_wager"]))
 
+    def pct(wagered: int) -> int:
+        return min(100, int(wagered * 100 // need))
+
+    mine = ref["as_referred"]
+    return {
+        "code": ref["code"], "total": ref["total"], "pending": ref["pending"], "rewarded": ref["rewarded"],
+        "earned": money(ref["earned"]), "reward_per_referral": money(ref["reward_per_referral"]),
+        "min_wager": money(ref["min_wager"]), "already_referred": ref["already_referred"],
+        "as_referred": None if mine is None else {"status": mine["status"], "wagered": money(mine["wagered"]),
+                                                  "pct": pct(mine["wagered"])},
+        "friends": [{"name": f["name"], "status": f["status"], "wagered": money(f["wagered"]),
+                     "pct": pct(f["wagered"]), "joined_at": iso(f["created_at"])} for f in ref["friends"]],
+    }
 
 @router.get("/vip")
 def read_vip(user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
@@ -51,10 +66,7 @@ def read_profile(user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
         "stats": {"settled": stats["settled"], "wins": stats["wins"], "open": stats["open"],
                   "staked": money(stats["staked"]), "accuracy_pct": stats["accuracy_pct"]},
         "vip": {"current": _tier_out(vip["current"])},
-        "referral": {"code": ref["code"], "total": ref["total"], "pending": ref["pending"],
-                     "rewarded": ref["rewarded"], "earned": money(ref["earned"]),
-                     "reward_per_referral": money(ref["reward_per_referral"]),
-                     "already_referred": ref["already_referred"]},
+        "referral": _referral_out(ref),
         "privacy": {"leaderboard_alias": priv["leaderboard_alias"], "hide_on_leaderboard": priv["hide_on_leaderboard"]},
     }
 
@@ -81,6 +93,9 @@ class ReferralIn(BaseModel):
 
 @router.post("/referrals/apply", status_code=201)
 @limiter.limit("10/minute")
+@router.get("/referrals")
+def read_referrals(user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
+    return _referral_out(growth.referral_summary(db, user.id))
 def apply_referral(request: Request, body: ReferralIn, user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
     growth.apply_referral_code(db, user.id, body.code)
     return {"applied": True}

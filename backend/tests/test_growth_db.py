@@ -149,8 +149,12 @@ def main() -> int:
         # ---- referral reward after the referred user plays -----------------------------
         assert db.execute(text("select process_referral_rewards()")).scalar_one() >= 0   # Bob has not played: still pending
         pa = client.get(f"{API}/profile", headers=H(alice)).json()
+        r0 = predict(bob, "growth-test-bob-0", "5"); assert _r0.status_code == 201, _r0.text
+        db.execute(text("select process_referral_rewards()"))
+        assert client.get(f"{API}/profile", headers=H(alice)).json()["referral"]["pending"] == 1   # $5 wager < $200: still pending
         assert pa["referral"]["pending"] == 1
         wal = client.get(f"{API}/wallet", headers=H(alice)).json()["total"]["units"]
+        db.execute(text("update application_settings set value = to_jsonb(0) where key = 'referral.min_wager'"))  # test only (rolled back)
         _r = predict(bob, "growth-test-bob-1", "5"); assert _r.status_code == 201, _r.text
         db.execute(text("select process_referral_rewards()"))
         db.execute(text("select process_referral_rewards()"))            # twice: must not double pay

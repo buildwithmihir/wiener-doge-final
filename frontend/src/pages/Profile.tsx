@@ -3,13 +3,14 @@ import {
   BookOpen,
   CheckCircle2,
   Coins,
-  Copy,
+  ChevronRight,
   History as HistoryIcon,
   LifeBuoy,
   Percent,
   Radio,
   Star,
   Trophy,
+  Gift,
   User as UserIcon,
   Wallet as WalletIcon,
   type LucideIcon,
@@ -21,7 +22,7 @@ import { dateTime, usd } from '../lib/format'
 import { HELP_URL, SUPPORT_URL } from '../lib/links'
 import type { NotificationPrefs, ProfileResponse, Wallet } from '../lib/types'
 import { useSession } from '../auth/AuthContext'
-import { ErrorState, PageTitle, Spinner } from '../components/ui'
+import { ErrorState, IconTile, PageTitle, Spinner } from '../components/ui'
 import { WagerCard } from '../components/WagerCard'
 
 const TIER_RING: Record<string, string> = {
@@ -32,14 +33,7 @@ const TIER_RING: Record<string, string> = {
 }
 const NO_TIER_RING = 'from-slate-600 to-slate-400'
 
-async function copyText(text: string): Promise<boolean> {
-  try {
-    await navigator.clipboard.writeText(text)
-    return true
-  } catch {
-    return false
-  }
-}
+
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -79,51 +73,7 @@ function QuickLink({ to, icon: Icon, label, color }: { to: string; icon: LucideI
   )
 }
 
-function ReferralApply() {
-  const qc = useQueryClient()
-  const [code, setCode] = useState('')
-  const apply = useMutation({
-    mutationFn: () => api('/referrals/apply', { method: 'POST', body: { code: code.trim() } }),
-    onSuccess: () => {
-      setCode('')
-      void qc.invalidateQueries({ queryKey: ['profile'] })
-    },
-  })
-  const message = apply.error instanceof ApiError ? apply.error.message : apply.error ? 'Could not apply the code.' : null
-  return (
-    <form
-      className="mt-3 space-y-2"
-      onSubmit={(e) => {
-        e.preventDefault()
-        if (code.trim()) apply.mutate()
-      }}
-    >
-      <label htmlFor="ref-code" className="text-xs text-slate-400">
-        Have a friend's code? (only before your first prediction)
-      </label>
-      <div className="flex gap-2">
-        <input
-          id="ref-code"
-          value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          maxLength={16}
-          autoCapitalize="characters"
-          autoComplete="off"
-          className="min-w-0 flex-1 rounded-xl border border-white/15 bg-ink-900 px-3 py-2 text-sm uppercase tracking-widest text-white outline-none focus:border-neon-blue"
-          placeholder="CODE"
-        />
-        <button type="submit" className="btn-ghost" disabled={apply.isPending || !code.trim()}>
-          Apply
-        </button>
-      </div>
-      {message && (
-        <p role="alert" className="text-xs text-down">
-          {message}
-        </p>
-      )}
-    </form>
-  )
-}
+
 
 function Privacy({ data }: { data: ProfileResponse['privacy'] }) {
   const qc = useQueryClient()
@@ -216,7 +166,6 @@ export default function ProfilePage() {
   const profile = useQuery({ queryKey: ['profile'], queryFn: () => api<ProfileResponse>('/profile') })
   const wallet = useQuery({ queryKey: ['wallet'], queryFn: () => api<Wallet>('/wallet') })
   const { user } = useSession()
-  const [copied, setCopied] = useState<'yes' | 'no' | null>(null)
 
   return (
     <>
@@ -284,39 +233,16 @@ export default function ProfilePage() {
           </Section>
 
           {/* referrals */}
-          <Section title="Invite friends">
-            <div className="glass-flat p-4">
+                    <Link to="/referrals" className="glass-flat flex items-center gap-3 p-4 transition active:scale-[0.98]">
+            <IconTile icon={Gift} tone="pink" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white">Invite friends</p>
               <p className="text-xs text-slate-400">
-                You get {usd(profile.data.referral.reward_per_referral)} as a bonus when a friend joins with your code and places a prediction.
+                Earn {usd(profile.data.referral.reward_per_referral)} for every friend who wagers {usd(profile.data.referral.min_wager)}
               </p>
-              <div className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-neon-blue/40 bg-ink-900 px-3 py-2">
-                <span className="num text-lg font-bold tracking-widest text-white">{profile.data.referral.code}</span>
-                <button
-                  type="button"
-                  className="btn-ghost px-3 py-1.5"
-                  aria-label="Copy referral code"
-                  onClick={() => void copyText(profile.data.referral.code).then((ok) => setCopied(ok ? 'yes' : 'no'))}
-                >
-                  <Copy className="h-4 w-4" aria-hidden />
-                  {copied === 'yes' ? 'Copied' : copied === 'no' ? 'Copy failed' : 'Copy'}
-                </button>
-              </div>
-              <div className="mt-3 grid grid-cols-4 gap-2 text-center">
-                {[
-                  ['Invited', String(profile.data.referral.total)],
-                  ['Rewarded', String(profile.data.referral.rewarded)],
-                  ['Pending', String(profile.data.referral.pending)],
-                  ['Earned', usd(profile.data.referral.earned)],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl bg-black/25 px-1 py-2">
-                    <p className="text-[10px] text-slate-500">{label}</p>
-                    <p className="num text-sm font-semibold text-white">{value}</p>
-                  </div>
-                ))}
-              </div>
-              {!profile.data.referral.already_referred && <ReferralApply />}
             </div>
-          </Section>
+            <ChevronRight className="h-5 w-5 text-slate-500" aria-hidden />
+          </Link>
 
           <Section title="Notifications">
             <NotificationSettings />

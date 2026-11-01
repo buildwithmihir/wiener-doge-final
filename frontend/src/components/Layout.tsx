@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { BarChart3, BookOpen, History, LifeBuoy, Star, Trophy, User, Wallet as WalletIcon } from 'lucide-react'
+import { BarChart3, BookOpen, History, LifeBuoy, Star, Trophy, User,Gift, Wallet as WalletIcon } from 'lucide-react'
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { api } from '../lib/api'
 import { usd } from '../lib/format'
@@ -34,6 +34,13 @@ export function Layout() {
             </span>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
+            <Link
+              to="/referrals"
+              aria-label="Invite friends"
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-400/10 text-pink-300 ring-1 ring-pink-400/30 transition active:scale-95"
+            >
+              <Gift className="h-[18px] w-[18px]" />
+            </Link>
             <Link
               to="/leaderboard"
               aria-label="Leaderboard"

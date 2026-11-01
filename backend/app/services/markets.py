@@ -17,6 +17,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from app.services.odds import odds_bps   # top imports
+from app.services.ladder import ladder_for
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -358,12 +359,11 @@ def create_ladder(
     """
     if not durations:
         raise AppError("invalid_duration", "Pick at least one timeframe.", 422)
-    base = latest_good_price(db, symbol)
-    targets = ladder_targets(base)
+        base = latest_good_price(db, symbol)
     created: list[dict] = []
     skipped = 0
     for duration, bps in durations:
-        for target in targets:
+        for target in ladder_for(symbol, base, duration):
             if _live_market_exists(db, symbol, duration, target):
                 skipped += 1
                 continue

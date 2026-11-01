@@ -127,7 +127,8 @@ def enqueue_rewards(db: Session) -> int:
         {"h": RECENT_HOURS},
     ).mappings().all()
     made += _enqueue(db, [{"user_id": r["user_id"], "key": str(r["id"]),
-                           "body": f"A friend joined with your code and played. You earned ${format_demo(int(r['reward_amount']))}." + FOOTER}
+                                                     "body": f"A friend you invited reached the wager requirement. You earned ${format_demo(int(r['reward_amount']))}." + FOOTER}
+                        
                           for r in refs], "referral_reward", "Referral reward", "ref")
     vips = db.execute(
         text(

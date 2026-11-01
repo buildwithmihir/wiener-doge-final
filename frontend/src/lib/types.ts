@@ -143,15 +143,7 @@ export interface ProfileResponse {
   user: { id: string; display_name: string; username: string | null; member_since: string }
   stats: { settled: number; wins: number; open: number; staked: Money; accuracy_pct: number | null }
   vip: { current: VipTier | null }
-  referral: {
-    code: string
-    total: number
-    pending: number
-    rewarded: number
-    earned: Money
-    reward_per_referral: Money
-    already_referred: boolean
-  }
+  referral: ReferralInfo
   privacy: { leaderboard_alias: string | null; hide_on_leaderboard: boolean }
 }
 
@@ -270,4 +262,24 @@ export interface NotificationItem {
 export interface NotificationsResponse {
   unread: number
   items: NotificationItem[]
+}
+export interface ReferralFriend {
+  name: string
+  status: 'pending' | 'eligible' | 'rewarded' | 'rejected'
+  wagered: Money
+  pct: number
+  joined_at: string | null
+}
+
+export interface ReferralInfo {
+  code: string
+  total: number
+  pending: number
+  rewarded: number
+  earned: Money
+  reward_per_referral: Money
+  min_wager: Money
+  already_referred: boolean
+  as_referred: { status: string; wagered: Money; pct: number } | null
+  friends: ReferralFriend[]
 }

@@ -59,7 +59,7 @@ class HealthPolicy:
     required_healthy_checks: int = 3
     # Per-asset minimum pool liquidity in USD, e.g. {"WIENER": Decimal("5000")}.
     min_liquidity_usd: dict[str, Decimal] = field(default_factory=dict)
-
+    max_move_bps_by_symbol: dict[str, int] = field(default_factory=dict)
     @classmethod
     def from_settings(cls, values: Mapping[str, Any]) -> "HealthPolicy":
         """Build from application_settings rows ({key: json value}). Raises ValueError if invalid."""
@@ -77,7 +77,15 @@ class HealthPolicy:
                 if not symbol or not amount.is_finite() or amount < 0:
                     raise ValueError(f"invalid liquidity setting {key}")
                 minimums[symbol] = amount
-        return cls(stale, move, required, minimums)
+                by_symbol: dict[str, int] = {}
+        for key, raw in values.items():
+            if key.startswith("price.max_move_bps_per_check."):
+                symbol = key[len("price.max_move_bps_per_check."):].upper()
+                limit = int(raw)
+                if not symbol or limit <= 0:
+                    raise ValueError(f"invalid move setting {key}")
+                by_symbol[symbol] = limit
+        return cls(stale, move, required, minimums, by_symbol)
 
 
 @dataclass(frozen=True)
@@ -133,10 +141,11 @@ def evaluate_feed(
 
     if previous_price is not None:
         bps = move_bps(previous_price, quote.price)
-        if bps > policy.max_move_bps:
+        limit = policy.max_move_bps_by_symbol.get(symbol, policy.max_move_bps)
+        if bps > limit:
             return FeedHealth(
                 symbol, FeedStatus.ANOMALOUS, "abnormal_move",
-                f"moved {bps} bps since last check (limit {policy.max_move_bps})", quote.price,
+                f"moved {bps} bps since last check (limit {limit})", quote.price,
             )
 
     minimum = policy.min_liquidity_usd.get(symbol)

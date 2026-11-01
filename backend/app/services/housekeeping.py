@@ -2,9 +2,10 @@
 
 ensure_auto_markets : keeps every active prediction asset supplied with bettable market rounds, so the
                       admin never has to create markets by hand. A "round" is a ladder of 7 target prices
-                      around the live price for one timeframe. A new round is made whenever a timeframe has
-                      no market left that can still take bets (with a 10 minute margin).
-refresh_vip_recent  : wager now counts only SETTLED bets, so VIP tiers are re-checked for users whose bets
+                      around the live price for one timeframe (SOL: fixed dollar margins, others: percent
+                      bands; see ladder.py). A new round is made whenever a timeframe has no market left
+                      that can still take bets (with a 10 minute margin).
+refresh_vip_recent  : wager counts only SETTLED bets, so VIP tiers are re-checked for users whose bets
                       were just settled.
 
 Needs at least one user with the admin role (markets are created in their name, with the reason
@@ -22,7 +23,8 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.services.growth import refresh_vip
-from app.services.markets import DURATIONS, create_market, ladder_targets, latest_good_price
+from app.services.ladder import ladder_for
+from app.services.markets import DURATIONS, create_market, latest_good_price
 
 log = logging.getLogger("wienerdoge.housekeeping")
 
@@ -62,12 +64,13 @@ def ensure_auto_markets(db: Session) -> dict[str, Any]:
     created = 0
     for symbol in symbols:
         try:
-            targets = ladder_targets(latest_good_price(db, symbol))
+            base = latest_good_price(db, symbol)
         except AppError:
             continue                                    # no fresh price: no new markets for this asset
         for duration in durations:
             if _has_bettable_market(db, symbol, duration):
                 continue
+            targets = ladder_for(symbol, base, duration)
             try:
                 with db.begin_nested():
                     for target in targets:

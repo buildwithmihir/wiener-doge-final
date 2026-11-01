@@ -74,14 +74,25 @@ def referral_summary(db: Session, user_id: uuid.UUID) -> dict[str, Any]:
                coalesce(sum(reward_amount) filter (where status = 'rewarded'), 0) as earned
         from referrals where referrer_id = :u
     """), {"u": user_id}).mappings().one()
-    applied = db.execute(text("select 1 from referrals where referred_id = :u"), {"u": user_id}).first() is not None
     reward = int(db.execute(text("select wd_setting_int('referral.reward', 0)")).scalar_one())
+    min_wager = int(db.execute(text("select wd_setting_int('referral.min_wager', 200000000)")).scalar_one())
+    friends = db.execute(text("""
+        select left(split_part(btrim(u.display_name), ' ', 1), 32) as name, r.status, r.created_at,
+               referral_wagered(r.referred_id) as wagered
+        from referrals r join users u on u.id = r.referred_id
+        where r.referrer_id = :u order by r.created_at desc limit 50
+    """), {"u": user_id}).mappings().all()
+    mine = db.execute(text("""
+        select status, referral_wagered(referred_id) as wagered from referrals where referred_id = :u
+    """), {"u": user_id}).mappings().first()
     return {
         "code": code, "total": int(counts["total"]), "pending": int(counts["pending"]),
         "rewarded": int(counts["rewarded"]), "earned": int(counts["earned"]),
-        "reward_per_referral": reward, "already_referred": applied,
+        "reward_per_referral": reward, "min_wager": min_wager, "already_referred": mine is not None,
+        "as_referred": None if mine is None else {"status": mine["status"], "wagered": int(mine["wagered"])},
+        "friends": [{"name": f["name"], "status": f["status"], "wagered": int(f["wagered"]),
+                     "created_at": f["created_at"]} for f in friends],
     }
-
 
 def apply_referral_code(db: Session, user_id: uuid.UUID, code: str) -> None:
     clean = (code or "").strip().upper()

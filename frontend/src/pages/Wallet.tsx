@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, Copy, Wallet as WalletIcon } from 'lucide-react'
+import { ArrowDown, ArrowUp, CheckCircle2, Clock, Copy, Info, ShieldCheck, Wallet as WalletIcon } from 'lucide-react'
 import { useRef, useState } from 'react'
-import { Badge, ErrorState, PageTitle, Spinner } from '../components/ui'
+import { AssetIcon } from '../components/AssetIcon'
+import { Badge, ErrorState, IconTile, PageTitle, Spinner } from '../components/ui'
 import { Button } from '../components/shadcn/button'
 import { Input } from '../components/shadcn/input'
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '../components/shadcn/sheet'
@@ -12,6 +13,7 @@ import type { DepositInfo, PayAsset, PublicConfig, WagerStatus, Wallet as Wallet
 import { WagerCard } from '../components/WagerCard'
 
 const ASSETS: PayAsset[] = ['SOL', 'WIENER']
+const QUICK_WITHDRAW = ['25', '50', '100']
 
 const STATUS_LABEL: Record<WithdrawalStatus, string> = {
   pending: 'Awaiting approval',
@@ -32,11 +34,46 @@ function AssetToggle({ value, onChange }: { value: PayAsset; onChange: (a: PayAs
           role="radio"
           aria-checked={value === a}
           onClick={() => onChange(a)}
-          className={`rounded-xl border px-3 py-2.5 text-sm font-bold transition ${value === a ? 'pick-selected' : 'pick-idle'}`}
+          className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition ${value === a ? 'pick-selected' : 'pick-idle'}`}
         >
+          <AssetIcon symbol={a} size={26} />
           {a}
         </button>
       ))}
+    </div>
+  )
+}
+
+function Steps({ items }: { items: string[] }) {
+  return (
+    <ol className="space-y-2">
+      {items.map((text, i) => (
+        <li key={text} className="flex items-start gap-2.5 text-xs text-slate-300">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[11px] font-bold text-white">{i + 1}</span>
+          <span className="pt-0.5">{text}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function Notice({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex gap-2 rounded-xl border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-200">
+      <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+      <div className="space-y-1">{children}</div>
+    </div>
+  )
+}
+
+function SheetHeader({ icon, tone, title, subtitle }: { icon: typeof ArrowDown; tone: 'green' | 'violet'; title: string; subtitle: string }) {
+  return (
+    <div className="mb-4 flex items-center gap-3 pr-8">
+      <IconTile icon={icon} tone={tone} className="h-12 w-12" />
+      <div>
+        <SheetTitle className="font-display text-xl font-bold text-white">{title}</SheetTitle>
+        <SheetDescription className="text-xs text-muted-foreground">{subtitle}</SheetDescription>
+      </div>
     </div>
   )
 }
@@ -56,11 +93,8 @@ function DepositSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent aria-describedby={undefined}>
-        <SheetTitle className="font-display text-lg font-bold text-white">Deposit</SheetTitle>
-        <SheetDescription className="mb-4 text-xs text-muted-foreground">
-          Send SOL or WIENER on the Solana network to your personal address. Your balance is credited in $ after the transfer is finalized.
-        </SheetDescription>
+      <SheetContent aria-describedby={undefined} className="max-h-[90vh] overflow-y-auto">
+        <SheetHeader icon={ArrowDown} tone="green" title="Deposit" subtitle="Add funds with SOL or WIENER on Solana." />
 
         {info.isPending && <Spinner />}
         {info.isError && (
@@ -69,21 +103,44 @@ function DepositSheet({ onClose }: { onClose: () => void }) {
           </p>
         )}
         {info.data && (
-          <div className="space-y-3">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">Accepted:</span>
+              {ASSETS.map((a) => (
+                <span key={a} className="flex items-center gap-1.5 rounded-full bg-white/5 py-1 pl-1 pr-2.5 text-xs font-semibold text-white">
+                  <AssetIcon symbol={a} size={20} /> {a}
+                </span>
+              ))}
+              <span className="ml-auto rounded-full bg-violet-400/15 px-2.5 py-1 text-[11px] font-semibold text-violet-300">{info.data.network}</span>
+            </div>
+
             <div className="rounded-xl border border-dashed border-neon-blue/40 bg-ink-900 p-3">
-              <p className="mb-1 text-xs text-slate-400">Your {info.data.network} address (SOL and WIENER)</p>
+              <p className="mb-1 text-xs text-slate-400">Your personal deposit address</p>
               <p className="break-all font-mono text-sm text-white">{info.data.address}</p>
             </div>
             <Button type="button" className="w-full" variant="secondary" onClick={() => void copy(info.data.address)}>
-              <Copy className="h-4 w-4" aria-hidden />
+              {copied === 'yes' ? <CheckCircle2 className="h-4 w-4 text-up" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
               {copied === 'yes' ? 'Copied' : copied === 'no' ? 'Copy failed: select the address manually' : 'Copy address'}
             </Button>
-            <ul className="space-y-1 text-xs text-slate-400">
-              <li>Minimum deposit: {usd(info.data.min_deposit)}</li>
-              <li>Only send SOL or WIENER. Other tokens are not credited.</li>
-              <li>Send only on the Solana network. Other networks are lost.</li>
-              <li>Value is converted to $ using the market price at the time it is credited.</li>
-            </ul>
+
+            <div className="glass-flat space-y-2.5 p-3">
+              <p className="text-xs font-semibold text-white">How it works</p>
+              <Steps
+                items={[
+                  'Copy your address above.',
+                  'Send SOL or WIENER to it from your wallet, on the Solana network.',
+                  'Your balance is credited in $ once the transfer is finalized.',
+                ]}
+              />
+              <p className="flex items-center gap-1.5 text-xs text-slate-400">
+                <Clock className="h-3.5 w-3.5" aria-hidden /> Usually takes a minute or two.
+              </p>
+            </div>
+
+            <Notice>
+              <p>Minimum deposit: {usd(info.data.min_deposit)}. Smaller amounts are not credited.</p>
+              <p>Only send SOL or WIENER on Solana. Other tokens or networks cannot be recovered.</p>
+            </Notice>
           </div>
         )}
       </SheetContent>
@@ -126,46 +183,69 @@ function WithdrawSheet({ available, onClose }: { available: bigint; onClose: () 
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent aria-describedby={undefined}>
-        <SheetTitle className="font-display text-lg font-bold text-white">Withdraw</SheetTitle>
-        <SheetDescription className="mb-4 text-xs text-muted-foreground">
-          Choose how you want to receive your balance. Withdrawals are reviewed by our team before they are sent.
-        </SheetDescription>
+      <SheetContent aria-describedby={undefined} className="max-h-[90vh] overflow-y-auto">
+        <SheetHeader icon={ArrowUp} tone="violet" title="Withdraw" subtitle="Receive your balance as SOL or WIENER." />
 
         {send.data ? (
           <div className="py-4 text-center">
-            <p className="text-lg font-semibold text-white">Request received</p>
+            <CheckCircle2 className="mx-auto h-12 w-12 animate-pop text-up" />
+            <p className="mt-2 text-lg font-semibold text-white">Request received</p>
             <p className="mt-1 text-sm text-slate-400">
-              {usd(send.data.amount)} in {send.data.asset} is awaiting approval. You can follow it in your withdrawal list.
+              {usd(send.data.amount)} in {send.data.asset} is awaiting approval. You can follow it in the Withdrawals list.
             </p>
             <Button type="button" className="mt-5 w-full" onClick={onClose}>
               Done
             </Button>
           </div>
         ) : (
-          <div className="space-y-3">
-            <AssetToggle value={asset} onChange={(a) => edit(() => setAsset(a))} />
+          <div className="space-y-4">
+            <div>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-slate-400">Receive as</p>
+              <AssetToggle value={asset} onChange={(a) => edit(() => setAsset(a))} />
+            </div>
+
             <div>
               <label htmlFor="wd-amount" className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Amount ($)
               </label>
-              <div className="mt-1 flex gap-2">
-                <Input id="wd-amount" inputMode="decimal" autoComplete="off" value={amount} onChange={(e) => edit(() => setAmount(e.target.value))} placeholder="25" />
-                <Button type="button" variant="outline" onClick={() => edit(() => setAmount(unitsToDemo(available)))}>
+              <Input id="wd-amount" inputMode="decimal" autoComplete="off" value={amount} onChange={(e) => edit(() => setAmount(e.target.value))} placeholder="25" className="mt-1 h-14 text-2xl font-bold" />
+              <div className="mt-2 flex gap-2">
+                {QUICK_WITHDRAW.map((q) => (
+                  <Button key={q} type="button" size="sm" variant="secondary" className="flex-1" onClick={() => edit(() => setAmount(q))}>
+                    ${q}
+                  </Button>
+                ))}
+                <Button type="button" size="sm" variant="outline" className="flex-1" onClick={() => edit(() => setAmount(unitsToDemo(available)))}>
                   Max
                 </Button>
               </div>
-              <p className="mt-1 text-xs text-slate-500">Available: {usd(unitsToDemo(available))}</p>
+              <p className="mt-1.5 text-xs text-slate-500">Available: {usd(unitsToDemo(available))}</p>
             </div>
+
             <div>
               <label htmlFor="wd-address" className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Your Solana wallet address
               </label>
               <Input id="wd-address" autoComplete="off" autoCapitalize="off" spellCheck={false} value={address} onChange={(e) => edit(() => setAddress(e.target.value))} placeholder="Paste address" className="mt-1 font-mono text-sm" />
             </div>
-            <p className="text-xs text-slate-500">
-              You receive {asset} worth the amount above, calculated with the market price when it is sent. Double-check the address: transfers cannot be reversed.
-            </p>
+
+            <div className="glass-flat space-y-2 p-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                <ShieldCheck className="h-4 w-4 text-up" aria-hidden /> What happens next
+              </p>
+              <Steps
+                items={[
+                  'Your amount is held from your balance right away.',
+                  'Our team reviews the request, then it is sent.',
+                  `You receive ${asset} worth the amount, priced when it is sent.`,
+                ]}
+              />
+            </div>
+
+            <Notice>
+              <p>Double-check the address. Blockchain transfers cannot be reversed.</p>
+            </Notice>
+
             {(send.error || (problem && (amount || address))) && (
               <p role="alert" className="text-sm text-down">
                 {send.error instanceof ApiError ? send.error.message : send.error ? 'Something went wrong. Try again.' : problem}
@@ -186,7 +266,8 @@ function WithdrawalRow({ w }: { w: WithdrawalItem }) {
   return (
     <li className="glass-flat p-3">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-semibold text-white">
+        <p className="flex items-center gap-2 font-semibold text-white">
+          <AssetIcon symbol={w.asset} size={24} />
           {usd(w.amount)} <span className="text-slate-400">as {w.asset}</span>
         </p>
         <Badge tone={tone}>{STATUS_LABEL[w.status]}</Badge>
@@ -219,27 +300,20 @@ export default function WalletPage() {
 
   const live = config.data?.payments_enabled === true
   const wagerMet = wager.data?.met !== false
-    const items = withdrawals.data?.items ?? []
+  const items = withdrawals.data?.items ?? []
   const inFlight = items
     .filter((w) => w.status === 'pending' || w.status === 'approved' || w.status === 'sending')
     .reduce((sum, w) => sum + BigInt(w.amount.units), 0n)
 
   return (
     <>
-      <PageTitle
-        icon={WalletIcon}
-        title="Wallet"
-        subtitle="Your balance in $. Deposit or withdraw SOL or WIENER."
-      />
+      <PageTitle icon={WalletIcon} tone="green" title="Wallet" subtitle="Your balance in $. Deposit or withdraw SOL or WIENER." />
       {wallet.isPending && <Spinner />}
       {wallet.isError && <ErrorState message="Could not load your wallet." onRetry={() => void wallet.refetch()} />}
       {wallet.data && (
         <div className="space-y-3">
           <div className="glass p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-400">Available</p>
-              
-            </div>
+            <p className="text-sm text-slate-400">Available</p>
             <p className="num mt-1 text-4xl font-bold text-white">{usd(wallet.data.available)}</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -252,7 +326,8 @@ export default function WalletPage() {
               <p className="num mt-1 text-xl font-semibold">{usd(wallet.data.total)}</p>
             </div>
           </div>
-          <WagerCard />\n          {inFlight > 0n && (
+          <WagerCard />
+          {inFlight > 0n && (
             <div className="glass-flat flex items-center justify-between p-3 text-sm">
               <span className="text-slate-400">Pending withdrawals</span>
               <span className="num font-semibold text-white">{usd(unitsToDemo(inFlight))}</span>
@@ -267,6 +342,7 @@ export default function WalletPage() {
             </button>
           </div>
           {!live && <p className="text-center text-xs text-slate-500">Deposits and withdrawals are temporarily unavailable.</p>}
+          {live && !wagerMet && <p className="text-center text-xs text-slate-500">Finish the wager requirement above to unlock withdrawals.</p>}
 
           {live && items.length > 0 && (
             <>
