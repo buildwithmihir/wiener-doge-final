@@ -9,8 +9,10 @@ export function withCommas(amount: string): string {
 }
 
 /** DEMO amounts are shown with a "$" like the design, always next to a DEMO badge in the UI. */
-export function usd(money: Money | string, maxDecimals = 2): string {
+export function usd(money: Money | string | null | undefined, maxDecimals = 2): string {
+  if (money == null) return '—'
   const raw = typeof money === 'string' ? money : money.demo
+  if (raw == null) return '—'
   const [whole = '0', fraction = ''] = raw.replace(/^-/, '').split('.')
   const trimmed = fraction.slice(0, maxDecimals).replace(/0+$/, '')
   const body = withCommas(`${whole}${trimmed ? `.${trimmed}` : ''}`)

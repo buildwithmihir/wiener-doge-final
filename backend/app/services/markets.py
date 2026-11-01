@@ -359,7 +359,7 @@ def create_ladder(
     """
     if not durations:
         raise AppError("invalid_duration", "Pick at least one timeframe.", 422)
-        base = latest_good_price(db, symbol)
+    base = latest_good_price(db, symbol)
     created: list[dict] = []
     skipped = 0
     for duration, bps in durations:

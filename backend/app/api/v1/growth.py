@@ -91,15 +91,16 @@ class ReferralIn(BaseModel):
     code: str = Field(min_length=1, max_length=32)
 
 
-@router.post("/referrals/apply", status_code=201)
-@limiter.limit("10/minute")
 @router.get("/referrals")
 def read_referrals(user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
     return _referral_out(growth.referral_summary(db, user.id))
+
+
+@router.post("/referrals/apply", status_code=201)
+@limiter.limit("10/minute")
 def apply_referral(request: Request, body: ReferralIn, user: CurrentUserDep, db: Annotated[Session, Depends(get_db)]):
     growth.apply_referral_code(db, user.id, body.code)
     return {"applied": True}
-
 
 @router.get("/leaderboard")
 def read_leaderboard(
