@@ -41,12 +41,13 @@ export function distancePct(target: string, last: string | null): string | null 
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`
 }
 /** Hide strikes too far from the live price (default ±15%). Falls back to all if none are near. */
-export function nearbyStrikes(strikes: Market[], last: string | null, maxPct = 15): Market[] {
+/** Max distance (in %) from the live price that a strike may have, per timeframe. */
+export const MAX_DISTANCE_PCT: Record<number, number> = { 86400: 6, 172800: 8, 604800: 14, 2592000: 25 }
+
+/** Keep only strikes close to the live price. NO fallback: far strikes are never shown. */
+export function nearbyStrikes(strikes: Market[], last: string | null, duration: number): Market[] {
   const ref = Number(last)
   if (!Number.isFinite(ref) || ref <= 0) return strikes
-  const kept = strikes.filter((m) => (Math.abs(Number(m.target_price) - ref) / ref) * 100 <= maxPct)
-  return kept.length > 0 ? kept : strikes
+  const maxPct = MAX_DISTANCE_PCT[duration] ?? 10
+  return strikes.filter((m) => (Math.abs(Number(m.target_price) - ref) / ref) * 100 <= maxPct)
 }
-
-
-// heahhahhhhhhhhhhhhhh ddonoa odnaodna 

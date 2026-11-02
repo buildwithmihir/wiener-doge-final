@@ -207,6 +207,12 @@ def _mark_actor(db: Session, actor_id: uuid.UUID, reason: str) -> None:
                {"a": str(actor_id), "r": reason})
 
 
+if symbol.upper() == "WIENER" and max_stake is None:
+        max_stake = 50 * 1_000_000          # thin pool: max $50 per bet
+if symbol.upper() == "WIENER" and min_stake is None:
+        min_stake = 1_000_000               # $1
+        
+        
 def create_market(
     db: Session,
     *,

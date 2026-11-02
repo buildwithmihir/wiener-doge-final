@@ -34,13 +34,19 @@ export function Layout() {
             </span>
           </Link>
           <div className="flex shrink-0 items-center gap-2">
-            <Link
-              to="/referrals"
-              aria-label="Invite friends"
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-400/10 text-pink-300 ring-1 ring-pink-400/30 transition active:scale-95"
-            >
-              <Gift className="h-[18px] w-[18px]" />
-            </Link>
+                     <Link
+            to="/referrals"
+            className="flex items-center gap-3 rounded-2xl border border-pink-400/30 bg-gradient-to-r from-pink-500/20 to-rose-500/10 p-4 transition active:scale-[0.98]"
+          >
+            <IconTile icon={Gift} tone="pink" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-white">Invite friends</p>
+              <p className="text-xs text-slate-300">
+                Earn {usd(profile.data.referral.reward_per_referral)} for every friend who wagers {usd(profile.data.referral.min_wager)}
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-slate-300" aria-hidden />
+          </Link>
             <Link
               to="/leaderboard"
               aria-label="Leaderboard"

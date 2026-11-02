@@ -68,7 +68,7 @@ def ensure_auto_markets(db: Session) -> dict[str, Any]:
         except AppError:
             continue                                    # no fresh price: no new markets for this asset
         for duration in durations:
-            if _has_bettable_market(db, symbol, duration):
+            if _has_bettable_market(db, symbol, duration, base):
                 continue
             targets = ladder_for(symbol, base, duration)
             try:
@@ -88,3 +88,19 @@ def refresh_vip_recent(db: Session, minutes: int = 15) -> int:
                 where status in ('won','lost') and settled_at > now() - make_interval(mins => :m) limit 200"""),
         {"m": minutes}).all()]
     return sum(refresh_vip(db, u) for u in users)
+
+
+NEAR_PCT = {86400: 6, 172800: 8, 604800: 14, 2592000: 25}
+MIN_NEAR_STRIKES = 3
+
+
+def _has_bettable_market(db: Session, symbol: str, duration: int, base) -> bool:
+    """True only if enough bettable strikes sit NEAR the live price (not just any old market)."""
+    n = db.execute(
+        text("""select count(*) from markets m join assets a on a.id = m.asset_id
+                where a.symbol = :s and m.duration_seconds = :d and m.status in ('open','paused')
+                  and m.betting_closes_at > now() + make_interval(mins => :m)
+                  and abs(m.target_price - cast(:b as numeric)) <= cast(:b as numeric) * cast(:p as numeric) / 100"""),
+        {"s": symbol, "d": duration, "m": BETTING_MARGIN_MINUTES, "b": base, "p": NEAR_PCT.get(duration, 10)},
+    ).scalar_one()
+    return int(n) >= MIN_NEAR_STRIKES

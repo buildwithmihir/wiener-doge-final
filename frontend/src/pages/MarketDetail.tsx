@@ -37,12 +37,30 @@ export default function MarketDetailPage() {
     )
   }
 
-  const durations = [...new Set(ofSymbol.map((m) => m.duration_seconds))].sort((a, b) => a - b)
+  const last = ofSymbol[0]!.last_price
+  const nearRounds = (d: number) =>
+    roundsFor(markets.data, symbol, d)
+      .map((r) => ({ ...r, strikes: nearbyStrikes(r.strikes, last, d) }))
+      .filter((r) => r.strikes.length > 0)
+
+  const durations = [...new Set(ofSymbol.map((m) => m.duration_seconds))]
+    .sort((a, b) => a - b)
+    .filter((d) => nearRounds(d).length > 0)
+
+  if (durations.length === 0) {
+    return (
+      <>
+        {back}
+        <EmptyState title={`New ${symbol} markets are being prepared`} text="Strikes near the live price are created automatically. Check back in a minute." />
+      </>
+    )
+  }
+
   const activeDuration = duration && durations.includes(duration) ? duration : durations[0]!
-  const rounds = roundsFor(markets.data, symbol, activeDuration)
+  const rounds = nearRounds(activeDuration)
   const round = rounds.find((r) => r.closesAt === closesAt) ?? rounds[0]!
-  const strikes = nearbyStrikes(round.strikes, round.strikes[0]!.last_price)
-  const active = strikes.find((m) => m.id === marketId) ?? nearestStrike(strikes, strikes[0]!.last_price) ?? strikes[0]!
+  const strikes = round.strikes
+  const active = strikes.find((m) => m.id === marketId) ?? nearestStrike(strikes, last) ?? strikes[0]!
 
   const picker = (
     <>
