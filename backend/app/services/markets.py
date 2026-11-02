@@ -207,10 +207,7 @@ def _mark_actor(db: Session, actor_id: uuid.UUID, reason: str) -> None:
                {"a": str(actor_id), "r": reason})
 
 
-if symbol.upper() == "WIENER" and max_stake is None:
-        max_stake = 50 * 1_000_000          # thin pool: max $50 per bet
-if symbol.upper() == "WIENER" and min_stake is None:
-        min_stake = 1_000_000               # $1
+
         
         
 def create_market(
@@ -248,7 +245,10 @@ def create_market(
     if asset_id is None:
         raise AppError("asset_not_supported", "This asset is not available for predictions.", 422)
 
-
+    if symbol.upper() == "WIENER" and max_stake is None:
+        max_stake = 50 * 1_000_000          # thin pool: max $50 per bet
+    if symbol.upper() == "WIENER" and min_stake is None:
+        min_stake = 1_000_000               # $1
     if payout_above_bps is None and payout_below_bps is None:
         if payout_bps is not None:
             payout_above_bps = payout_below_bps = payout_bps
