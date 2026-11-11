@@ -40,14 +40,23 @@ export function distancePct(target: string, last: string | null): string | null 
   const pct = ((t - l) / l) * 100
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`
 }
-/** Hide strikes too far from the live price (default ±15%). Falls back to all if none are near. */
-/** Max distance (in %) from the live price that a strike may have, per timeframe. */
-export const MAX_DISTANCE_PCT: Record<number, number> = { 86400: 6, 172800: 8, 604800: 14, 2592000: 25 }
+
+/**
+ * Max distance (in %) from the live price that a strike may have, per timeframe = 0.75 x the 1-sigma move.
+ * Keep in sync with near_pct() in backend/app/services/ladder.py (volatility 0.65 for SOL, 1.6 for the rest).
+ */
+export const MAX_DISTANCE_PCT: Record<number, number> = { 86400: 7, 172800: 9, 604800: 17, 2592000: 35 }
+
+export const MAX_DISTANCE_PCT_BY_SYMBOL: Record<string, Record<number, number>> = {
+  SOL: { 86400: 3, 172800: 4, 604800: 7, 2592000: 14 },
+}
 
 /** Keep only strikes close to the live price. NO fallback: far strikes are never shown. */
 export function nearbyStrikes(strikes: Market[], last: string | null, duration: number): Market[] {
   const ref = Number(last)
   if (!Number.isFinite(ref) || ref <= 0) return strikes
-  const maxPct = MAX_DISTANCE_PCT[duration] ?? 10
+  const symbol = strikes[0]?.symbol ?? ''
+  const table = MAX_DISTANCE_PCT_BY_SYMBOL[symbol] ?? MAX_DISTANCE_PCT
+  const maxPct = table[duration] ?? 10
   return strikes.filter((m) => (Math.abs(Number(m.target_price) - ref) / ref) * 100 <= maxPct)
 }

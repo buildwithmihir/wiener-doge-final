@@ -2,9 +2,9 @@
 
 ensure_auto_markets : keeps every active prediction asset supplied with bettable market rounds, so the
                       admin never has to create markets by hand. A "round" is a ladder of 7 target prices
-                      around the live price for one timeframe (SOL: fixed dollar margins, others: percent
-                      bands; see ladder.py). A new round is made whenever a timeframe has no market left
-                      that can still take bets (with a 10 minute margin).
+                      around the live price for one timeframe (volatility-based grid, see ladder.py). A new
+                      round is made whenever a timeframe has fewer than MIN_NEAR_STRIKES bettable strikes
+                      NEAR the live price (with a 10 minute margin).
 refresh_vip_recent  : wager counts only SETTLED bets, so VIP tiers are re-checked for users whose bets
                       were just settled.
 
@@ -23,13 +23,14 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import AppError
 from app.services.growth import refresh_vip
-from app.services.ladder import ladder_for
+from app.services.ladder import ladder_for, near_pct
 from app.services.markets import DURATIONS, create_market, latest_good_price
 
 log = logging.getLogger("wienerdoge.housekeeping")
 
 DEFAULT_AUTO_DURATIONS = [86400, 172800, 604800]
 BETTING_MARGIN_MINUTES = 10
+MIN_NEAR_STRIKES = 3
 
 
 def _auto_durations(db: Session) -> list[int]:
@@ -42,13 +43,16 @@ def _auto_durations(db: Session) -> list[int]:
     return [v for v in values if v in DURATIONS and (v != 2592000 or monthly)]
 
 
-def _has_bettable_market(db: Session, symbol: str, duration: int) -> bool:
-    return db.execute(
-        text("""select 1 from markets m join assets a on a.id = m.asset_id
+def _has_bettable_market(db: Session, symbol: str, duration: int, base) -> bool:
+    """True only if enough bettable strikes sit NEAR the live price (not just any old market)."""
+    n = db.execute(
+        text("""select count(*) from markets m join assets a on a.id = m.asset_id
                 where a.symbol = :s and m.duration_seconds = :d and m.status in ('open','paused')
-                  and m.betting_closes_at > now() + make_interval(mins => :m) limit 1"""),
-        {"s": symbol, "d": duration, "m": BETTING_MARGIN_MINUTES},
-    ).first() is not None
+                  and m.betting_closes_at > now() + make_interval(mins => :m)
+                  and abs(m.target_price - cast(:b as numeric)) <= cast(:b as numeric) * cast(:p as numeric) / 100"""),
+        {"s": symbol, "d": duration, "m": BETTING_MARGIN_MINUTES, "b": base, "p": near_pct(symbol, duration)},
+    ).scalar_one()
+    return int(n) >= MIN_NEAR_STRIKES
 
 
 def ensure_auto_markets(db: Session) -> dict[str, Any]:
@@ -88,19 +92,3 @@ def refresh_vip_recent(db: Session, minutes: int = 15) -> int:
                 where status in ('won','lost') and settled_at > now() - make_interval(mins => :m) limit 200"""),
         {"m": minutes}).all()]
     return sum(refresh_vip(db, u) for u in users)
-
-
-NEAR_PCT = {86400: 6, 172800: 8, 604800: 14, 2592000: 25}
-MIN_NEAR_STRIKES = 3
-
-
-def _has_bettable_market(db: Session, symbol: str, duration: int, base) -> bool:
-    """True only if enough bettable strikes sit NEAR the live price (not just any old market)."""
-    n = db.execute(
-        text("""select count(*) from markets m join assets a on a.id = m.asset_id
-                where a.symbol = :s and m.duration_seconds = :d and m.status in ('open','paused')
-                  and m.betting_closes_at > now() + make_interval(mins => :m)
-                  and abs(m.target_price - cast(:b as numeric)) <= cast(:b as numeric) * cast(:p as numeric) / 100"""),
-        {"s": symbol, "d": duration, "m": BETTING_MARGIN_MINUTES, "b": base, "p": NEAR_PCT.get(duration, 10)},
-    ).scalar_one()
-    return int(n) >= MIN_NEAR_STRIKES

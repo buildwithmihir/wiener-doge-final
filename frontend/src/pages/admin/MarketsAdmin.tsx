@@ -47,7 +47,7 @@ function CreateLadder({ symbols }: { symbols: string[] }) {
     >
       <p className="text-sm font-semibold text-white">Create price ladder</p>
       <p className="text-xs text-slate-400">
-        Makes 7 target prices around the live price for each timeframe you tick. SOL: within $3 (24h), $4 (48h), $10 (7d). Other assets use percent bands. Odds are calculated automatically from the distance to the live price.
+        Makes 7 target prices around the live price for each timeframe you tick. The gap between strikes follows each asset's volatility, rounded to clean numbers. Odds are calculated automatically from the distance to the live price.
               </p>
       <label className="block text-xs text-slate-400">
         Asset
