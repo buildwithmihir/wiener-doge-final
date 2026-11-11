@@ -22,16 +22,28 @@ function chipClass(active: boolean): string {
   }`
 }
 
+/** One list per status. Same key = one shared request, so tabs and counters never double-fetch. */
+function useWithdrawals(status: Status) {
+  return useQuery({
+    queryKey: ['admin-withdrawals', 'list', status],
+    queryFn: () => api<{ items: AdminWithdrawal[] }>(`/admin/withdrawals?status=${status}`),
+    refetchInterval: 20_000,
+  })
+}
+
 function Row({ w }: { w: AdminWithdrawal }) {
   const qc = useQueryClient()
   const [reason, setReason] = useState('')
+  const [confirmApprove, setConfirmApprove] = useState(false)
   const act = useMutation({
     mutationFn: (action: 'approve' | 'reject') =>
       api(`/admin/withdrawals/${w.id}/${action}`, { method: 'POST', body: { reason: reason.trim() } }),
     onSuccess: () => {
       setReason('')
+      setConfirmApprove(false)
       void qc.invalidateQueries({ queryKey: ['admin-withdrawals'] })
     },
+    onError: () => setConfirmApprove(false),
   })
   const has = reason.trim().length > 0
   const canApprove = w.status === 'pending' || w.status === 'failed'
@@ -51,18 +63,25 @@ function Row({ w }: { w: AdminWithdrawal }) {
         user {w.user_id.slice(0, 8)} · {dateTime(w.created_at)}
         {w.native_amount ? ` · ${w.native_amount} ${w.asset}` : ''}
       </p>
+      {w.note && <p className="text-xs text-slate-300">Note: {w.note}</p>}
+      {w.status === 'approved' && (
+        <p className="rounded-lg bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+          Approved and waiting to be sent. If it stays here for more than a few minutes, check the payments cron job and the hot wallet balance.
+        </p>
+      )}
       {w.tx_signature && (
         <a className="block text-xs text-neon-blue underline" href={`https://solscan.io/tx/${w.tx_signature}`} target="_blank" rel="noreferrer">
           View transaction
         </a>
       )}
-      {canReject && (
+
+      {canReject && !confirmApprove && (
         <>
           <input className={input} value={reason} maxLength={300} onChange={(e) => setReason(e.target.value)} placeholder="Reason (required)" aria-label="Reason" />
           <div className="flex gap-2">
             {canApprove && (
-              <button type="button" className="btn-primary flex-1" disabled={!has || act.isPending} onClick={() => act.mutate('approve')}>
-                Approve and send
+              <button type="button" className="btn-primary flex-1" disabled={!has || act.isPending} onClick={() => setConfirmApprove(true)}>
+                Approve…
               </button>
             )}
             <button type="button" className="btn-ghost flex-1 text-down" disabled={!has || act.isPending} onClick={() => act.mutate('reject')}>
@@ -71,6 +90,23 @@ function Row({ w }: { w: AdminWithdrawal }) {
           </div>
         </>
       )}
+
+      {canApprove && confirmApprove && (
+        <div className="space-y-2 rounded-xl border border-up/40 bg-up/10 p-3">
+          <p className="text-sm font-semibold text-white">Send {usd(w.amount)} as {w.asset}?</p>
+          <p className="break-all font-mono text-xs text-slate-200">{w.address}</p>
+          <p className="text-xs text-slate-300">Blockchain transfers cannot be undone. Reason: {reason.trim()}</p>
+          <div className="flex gap-2">
+            <button type="button" className="btn-ghost flex-1" disabled={act.isPending} onClick={() => setConfirmApprove(false)}>
+              Cancel
+            </button>
+            <button type="button" className="btn-primary flex-1" disabled={act.isPending} onClick={() => act.mutate('approve')}>
+              {act.isPending ? 'Approving…' : 'Yes, approve and send'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {errText(act.error) && (
         <p role="alert" className="text-xs text-down">
           {errText(act.error)}
@@ -82,23 +118,44 @@ function Row({ w }: { w: AdminWithdrawal }) {
 
 export default function WithdrawalsAdmin() {
   const [status, setStatus] = useState<Status>('pending')
-  const list = useQuery({
-    queryKey: ['admin-withdrawals', status],
-    queryFn: () => api<{ items: AdminWithdrawal[] }>(`/admin/withdrawals?status=${status}`),
-    refetchInterval: 20_000,
-  })
+  const list = useWithdrawals(status)
+  const pending = useWithdrawals('pending')
+  const approved = useWithdrawals('approved')
+
+  const counts: Partial<Record<Status, number>> = {
+    pending: pending.data?.items.length,
+    approved: approved.data?.items.length,
+  }
+  const approvedCount = counts.approved ?? 0
+
   return (
     <div className="space-y-3">
       <p className="px-1 text-xs text-slate-400">
         Check the address and the user's history before approving. The token amount is calculated from the market price at the moment it is sent.
       </p>
+
+      {approvedCount > 0 && status !== 'approved' && (
+        <button
+          type="button"
+          className="w-full rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-left text-xs text-amber-200"
+          onClick={() => setStatus('approved')}
+        >
+          {approvedCount} approved withdrawal{approvedCount === 1 ? ' is' : 's are'} waiting to be sent. Tap to review.
+        </button>
+      )}
+
       <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Withdrawal status">
-        {STATUSES.map((s) => (
-          <button key={s} type="button" role="tab" aria-selected={status === s} className={`${chipClass(status === s)} capitalize`} onClick={() => setStatus(s)}>
-            {s}
-          </button>
-        ))}
+        {STATUSES.map((s) => {
+          const n = counts[s]
+          return (
+            <button key={s} type="button" role="tab" aria-selected={status === s} className={`${chipClass(status === s)} capitalize`} onClick={() => setStatus(s)}>
+              {s}
+              {n ? ` (${n})` : ''}
+            </button>
+          )
+        })}
       </div>
+
       {list.isPending && <Spinner />}
       {list.isError && <ErrorState message="Could not load withdrawals." onRetry={() => void list.refetch()} />}
       {list.data && list.data.items.length === 0 && <p className="text-center text-sm text-slate-400">Nothing here.</p>}
@@ -110,3 +167,6 @@ export default function WithdrawalsAdmin() {
     </div>
   )
 }
+
+
+
