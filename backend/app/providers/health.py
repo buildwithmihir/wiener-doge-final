@@ -1,7 +1,7 @@
 """Feed-health rules and the market pause / reopen decision.
 
 Pure logic with no database or network access, so it is easy to test. The worker
-(later) feeds it quotes and stored history, then applies the result.
+feeds it quotes and stored history, then applies the result.
 
 Statuses match provider_health_history.status in the database:
   healthy | stale | missing | anomalous | error
@@ -36,6 +36,7 @@ from app.providers.base import PriceQuote, QuoteProblem, check_quote_freshness, 
 
 AUTO_PAUSE_PREFIX = "auto:"
 LIQUIDITY_KEY_PREFIX = "price.min_liquidity_usd."
+MOVE_KEY_PREFIX = "price.max_move_bps_per_check."
 
 
 class FeedStatus(str, Enum):
@@ -59,7 +60,9 @@ class HealthPolicy:
     required_healthy_checks: int = 3
     # Per-asset minimum pool liquidity in USD, e.g. {"WIENER": Decimal("5000")}.
     min_liquidity_usd: dict[str, Decimal] = field(default_factory=dict)
+    # Per-asset override of max_move_bps, e.g. {"WIENER": 5000}.
     max_move_bps_by_symbol: dict[str, int] = field(default_factory=dict)
+
     @classmethod
     def from_settings(cls, values: Mapping[str, Any]) -> "HealthPolicy":
         """Build from application_settings rows ({key: json value}). Raises ValueError if invalid."""
@@ -70,6 +73,7 @@ class HealthPolicy:
             raise ValueError("health settings must be positive (reopen checks >= 1)")
 
         minimums: dict[str, Decimal] = {}
+        by_symbol: dict[str, int] = {}
         for key, raw in values.items():
             if key.startswith(LIQUIDITY_KEY_PREFIX):
                 symbol = key[len(LIQUIDITY_KEY_PREFIX):].upper()
@@ -77,10 +81,8 @@ class HealthPolicy:
                 if not symbol or not amount.is_finite() or amount < 0:
                     raise ValueError(f"invalid liquidity setting {key}")
                 minimums[symbol] = amount
-                by_symbol: dict[str, int] = {}
-        for key, raw in values.items():
-            if key.startswith("price.max_move_bps_per_check."):
-                symbol = key[len("price.max_move_bps_per_check."):].upper()
+            elif key.startswith(MOVE_KEY_PREFIX):
+                symbol = key[len(MOVE_KEY_PREFIX):].upper()
                 limit = int(raw)
                 if not symbol or limit <= 0:
                     raise ValueError(f"invalid move setting {key}")
