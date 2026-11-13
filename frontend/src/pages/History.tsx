@@ -40,28 +40,33 @@ const SIDES = [
   { key: 'below', label: 'Below', Icon: ArrowDown, color: 'text-down' },
 ] as const
 
-function DollarDot() {
+function DollarDot({ small = false }: { small?: boolean }) {
   return (
-    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[11px] font-bold text-white" aria-hidden>
+    <span
+      className={`flex items-center justify-center rounded-full bg-emerald-500 font-bold text-white ${
+        small ? 'h-4 w-4 text-[9px]' : 'h-5 w-5 text-[11px]'
+      }`}
+      aria-hidden
+    >
       $
     </span>
   )
 }
 
-function DataRow({ label, children }: { label: string; children: ReactNode }) {
+function DataRow({ label, children, compact = false }: { label: string; children: ReactNode; compact?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-1 text-[15px]">
+    <div className={`flex items-center justify-between ${compact ? 'py-0.5 text-[13px]' : 'py-1 text-[15px]'}`}>
       <span className="text-slate-400">{label}</span>
       <span className="flex items-center gap-2 font-semibold">{children}</span>
     </div>
   )
 }
 
-function Brand() {
+function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <div className="my-4 flex items-center gap-3">
+    <div className={`flex items-center gap-3 ${compact ? 'my-2.5' : 'my-4'}`}>
       <span className="h-px flex-1 bg-white/10" />
-      <span className="font-display text-2xl font-extrabold italic tracking-tight text-white">WienerDoge</span>
+      <span className={`font-display font-extrabold italic tracking-tight text-white ${compact ? 'text-base' : 'text-2xl'}`}>WienerDoge</span>
       <span className="h-px flex-1 bg-white/10" />
     </div>
   )
@@ -146,23 +151,23 @@ function LiveCard({ p, quote, onCashout }: { p: Prediction; quote?: Quote; onCas
   )
 }
 
-/** Finished bet (won / lost / refunded / cashed out). */
+/** Finished bet (won / lost / refunded / cashed out). Compact receipt on a near-black background. */
 function DoneCard({ p }: { p: Prediction }) {
   const settled = p.status === 'won' || p.status === 'lost'
   return (
-    <li className="rounded-2xl border border-white/5 bg-[#1b2c38] p-4 text-slate-300 shadow-card">
+    <li className="rounded-2xl border border-white/[0.06] bg-[#06090c] p-3 text-slate-300 shadow-card">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <AssetIcon symbol={p.symbol} size={30} />
-          <p className="truncate text-lg font-bold text-white">{p.symbol}</p>
+        <div className="flex min-w-0 items-center gap-2">
+          <AssetIcon symbol={p.symbol} size={24} />
+          <p className="truncate text-base font-bold text-white">{p.symbol}</p>
         </div>
-        <span className={`rounded-md px-2.5 py-0.5 text-sm font-bold text-white ${STATUS_BADGE[p.status]}`}>{STATUS_LABEL[p.status]}</span>
+        <span className={`rounded-md px-2 py-0.5 text-xs font-bold text-white ${STATUS_BADGE[p.status]}`}>{STATUS_LABEL[p.status]}</span>
       </div>
 
-      <p className="mt-3 text-slate-400">Price at close · {durationLabel(p.duration_seconds)} market</p>
-      <p className="mt-3 text-slate-300">{dateTime(p.created_at)}</p>
+      <p className="mt-2 text-xs text-slate-400">Price at close · {durationLabel(p.duration_seconds)} market</p>
+      <p className="mt-1 text-xs text-slate-300">{dateTime(p.created_at)}</p>
 
-      <div className="mt-3 space-y-2">
+      <div className="mt-2 space-y-1.5">
         {SIDES.map(({ key, label, Icon, color }) => {
           const picked = p.direction === key
           const won = p.market_result === key
@@ -170,20 +175,20 @@ function DoneCard({ p }: { p: Prediction }) {
           return (
             <div key={key} className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <Icon className={`h-5 w-5 shrink-0 ${color}`} aria-hidden />
-                <span className={`truncate text-lg ${picked ? 'font-bold text-white' : 'text-slate-400'}`}>
+                <Icon className={`h-4 w-4 shrink-0 ${color}`} aria-hidden />
+                <span className={`truncate text-base ${picked ? 'font-bold text-white' : 'text-slate-400'}`}>
                   {label} {price(p.target_price)}
                 </span>
                 {picked && (
-                  <span className="text-xs text-slate-300" aria-label="Your pick">
+                  <span className="text-[10px] text-slate-300" aria-label="Your pick">
                     ◂
                   </span>
                 )}
               </div>
               {hasResult && (
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 text-base font-bold ${
-                    won ? 'border-up text-up' : 'border-slate-600 text-slate-500'
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-2 text-sm font-bold ${
+                    won ? 'border-up text-up' : 'border-slate-700 text-slate-600'
                   }`}
                   aria-label={won ? 'Winning side' : 'Losing side'}
                 >
@@ -195,25 +200,25 @@ function DoneCard({ p }: { p: Prediction }) {
         })}
       </div>
 
-      <Brand />
+      <Brand compact />
 
-      <DataRow label="Odds">
+      <DataRow label="Odds" compact>
         <span className="num text-sky-400">{p.payout_multiplier}x</span>
       </DataRow>
-      <DataRow label="Stake">
+      <DataRow label="Stake" compact>
         <span className="num text-white">{usd(p.stake)}</span>
-        <DollarDot />
+        <DollarDot small />
       </DataRow>
-      <DataRow label={p.status === 'cashed_out' ? 'Cashed out' : 'Payout'}>
+      <DataRow label={p.status === 'cashed_out' ? 'Cashed out' : 'Payout'} compact>
         <span className={`num ${p.status === 'won' ? 'text-up' : p.status === 'cashed_out' ? 'text-teal-300' : 'text-slate-300'}`}>{usd(p.payout)}</span>
-        <DollarDot />
+        <DollarDot small />
       </DataRow>
       {settled && (
-        <DataRow label="Final price">
+        <DataRow label="Final price" compact>
           <span className="num text-white">{price(p.settle_price)}</span>
         </DataRow>
       )}
-      {p.status === 'cashed_out' && <p className="mt-1 text-[11px] text-slate-500">Cashed-out bets do not count toward your wager.</p>}
+      {p.status === 'cashed_out' && <p className="mt-1 text-[10px] text-slate-500">Cashed-out bets do not count toward your wager.</p>}
     </li>
   )
 }
